@@ -1,0 +1,10 @@
+13:21:23 PSYTEUpdateGraphbar: Frame='GraphBar(Site1Top[2].hh_pct)' --> sSite='Site1Top' Top='2' Column='hh_pct'
+13:21:23 PSYTEUpdateGraphbar: Frame='GraphBar(Site1Top[1].hh_pct)' --> sSite='Site1Top' Top='1' Column='hh_pct'
+13:53:03 1: households
+13:53:03 Update _Site_B Set households = households * proportion_overlap
+13:53:03 2: population
+13:53:03 Update _Site_B Set population = population * proportion_overlap
+13:53:03 PSYTECreateTempSegmTable: Create Segment Table '_Site_B_segments' for Site Table '_Site_B'
+13:53:04 Add Column _Site_B (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+13:53:04 Update _Site_B_segments Set households_pct = Round((households / 8875) * 100, 0.01)
+13:53:04 Update _Site_B_segments Set population_pct = Round((population / 18643) * 100, 0.01)

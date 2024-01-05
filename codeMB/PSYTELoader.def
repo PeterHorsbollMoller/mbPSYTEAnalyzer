@@ -1,0 +1,6 @@
+﻿Declare Sub PSYTELLoadBenchmarkTable(	  ByVal sTXTFile As String		'TXT File to load
+								, ByVal sTabFile As String		'TAB File to save it into
+								)
+Declare Sub PSYTELLoadSegmentLabelsTable( ByVal sTXTFile As String		'TXT File to load
+								, ByVal sTABFile As String		'TAB File to save it into
+								)

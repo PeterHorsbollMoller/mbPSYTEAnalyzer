@@ -1,0 +1,106 @@
+!Workspace
+!Version 1520
+!Charset UTF-8
+Layout Designer
+  Position (3.16667,6.3125) Units "in"
+  Width 9.96875 Units "in" Height 4.64583 Units "in" 
+  Dim uniqueLayoutWin As Integer
+  uniqueLayoutWin = FrontWindow()
+  Dim restoreCoordSysString As String
+  restoreCoordSysString = "Set " + SessionInfo(1)
+  Set CoordSys Layout Units "in"
+  Set Layout Window uniqueLayoutWin Zoom 100 Center (7.69271,6.1854)
+Set Window FrontWindow() Enhanced On Smooth Text Antialias Image High Vector Antialias
+Set Window FrontWindow() Printer
+ Name "HP ColorLaserJet M253-M254 PCL-6 (V4) (Network)" Orientation Portrait Copies 1
+ Resolution 600
+ Papersize 9
+  Create Frame (0.4146,0.4634) (7.8535,6.7604) Pen(1,2,0)  Brush(1,0,16777215)  Priority 6 Name "Map Site1"
+Create Text Into Window uniqueLayoutWin 
+    "Top-5 PSYTE Segments"
+    (0.4042,7.0201) (3.7097,7.2604)
+    Font ("Precision Sans W",1,12,0)
+    Priority 7
+Create Rect (0.4042,7.3681) (7.8639,7.6424)
+    Pen (0,1,16777215) 
+    Brush (2,16744448,16777215)
+    Priority 8
+Name "GraphBar(Site1Top[1].hh_pct)"
+Create Rect (0.4042,7.7771) (7.8639,8.0514)
+    Pen (0,1,16777215) 
+    Brush (2,16750640,16777215)
+    Priority 9
+Name "GraphBar(Site1Top[2].hh_pct)"
+Create Rect (0.4042,8.1854) (7.8639,8.4597)
+    Pen (0,1,16777215) 
+    Brush (2,16754768,16777215)
+    Priority 10
+Name "GraphBar(Site1Top[3].hh_pct)"
+Create Rect (0.4042,8.5944) (7.8639,8.8688)
+    Pen (0,1,16777215) 
+    Brush (2,16760960,16777215)
+    Priority 11
+Name "GraphBar(Site1Top[4].hh_pct)"
+Create Rect (0.4042,9.0035) (7.8639,9.2778)
+    Pen (0,1,16777215) 
+    Brush (2,16765088,16777215)
+    Priority 12
+Name "GraphBar(Site1Top[5].hh_pct)"
+Create Text Into Window uniqueLayoutWin 
+    "$mb{PSYTEGetTop(1, ""seg_code"")} $mb{PSYTEGetTop(1, ""seg_label"")} $mb{PSYTEGetTop(1, ""hh_pct"")}%"
+    (0.5521,7.4306) (7.7417,7.5979)
+    Font ("Precision Sans W",0,10,0)
+    Priority 13
+Name "[Text(Top1)]"
+Create Text Into Window uniqueLayoutWin 
+    "$mb{PSYTEGetTop(2, ""seg_code"")} $mb{PSYTEGetTop(2, ""seg_label"")} $mb{PSYTEGetTop(2, ""hh_pct"")}%"
+    (0.5521,7.8292) (7.7417,7.9965)
+    Font ("Precision Sans W",0,10,0)
+    Priority 14
+Name "[Text(Top2)]"
+Create Text Into Window uniqueLayoutWin 
+    "$mb{PSYTEGetTop(3, ""seg_code"")} $mb{PSYTEGetTop(3, ""seg_label"")} $mb{PSYTEGetTop(3, ""hh_pct"")}%"
+    (0.5521,8.2354) (7.7417,8.4028)
+    Font ("Precision Sans W",0,10,0)
+    Priority 15
+Name "[Text(Top3)]"
+Create Text Into Window uniqueLayoutWin 
+    "$mb{PSYTEGetTop(4, ""seg_code"")} $mb{PSYTEGetTop(4, ""seg_label"")} $mb{PSYTEGetTop(4, ""hh_pct"")}%"
+    (0.5521,8.6417) (7.7417,8.809)
+    Font ("Precision Sans W",0,10,0)
+    Priority 16
+Name "[Text(Top4)]"
+Create Text Into Window uniqueLayoutWin 
+    "$mb{PSYTEGetTop(5, ""seg_code"")} $mb{PSYTEGetTop(5, ""seg_label"")} $mb{PSYTEGetTop(5, ""hh_pct"")}%"
+    (0.5521,9.0583) (7.7417,9.2257)
+    Font ("Precision Sans W",0,10,0)
+    Priority 17
+Name "[Text(Top5)]"
+Create Rect (0.4042,7.3681) (7.8639,7.6424)
+    Pen (0,1,16777215) 
+    Brush (2,14737632,16777215)
+    Priority 1
+Create Rect (0.4042,7.7771) (7.8639,8.0514)
+    Pen (0,1,16777215) 
+    Brush (2,14737632,16777215)
+    Priority 2
+Create Rect (0.4042,8.1854) (7.8639,8.4597)
+    Pen (0,1,16777215) 
+    Brush (2,14737632,16777215)
+    Priority 3
+Create Rect (0.4042,8.5944) (7.8639,8.8688)
+    Pen (0,1,16777215) 
+    Brush (2,14737632,16777215)
+    Priority 4
+Create Rect (0.4042,9.0035) (7.8639,9.2778)
+    Pen (0,1,16777215) 
+    Brush (2,14737632,16777215)
+    Priority 5
+Create Text Into Window uniqueLayoutWin 
+    "${Date}"
+    (7.0819,9.5215) (7.8639,9.6896)
+    Font ("Precision Sans W",0,10,0)
+    Priority 18
+  Run Command restoreCoordSysString
+  Undim restoreCoordSysString
+  UnDim uniqueLayoutWin

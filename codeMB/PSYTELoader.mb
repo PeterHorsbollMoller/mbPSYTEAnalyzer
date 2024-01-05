@@ -1,0 +1,143 @@
+﻿'*******************************************************************************
+'** 	Created By Peter Horsbøll Møller, Precisely
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+
+'-------------------------------------
+Include "Library\DEBUGLib.def"
+Include "Library\FILELib.def"
+Include "Library\ERRORLib.def"
+Include "Library\TABLELib.def"
+
+Include "PSYTEConfig.def"
+Include "PSYTELoader.def"
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTELLoadBenchmarkTable(	  ByVal sTXTFile As String		'TXT File to load
+						, ByVal sTABFile As String		'TAB File to save it into
+						)
+
+Dim	sTempFile, sTab, sCmd As String,
+	nCol As Integer,
+	tStart As Time
+
+OnError GoTo ErrorOccured
+
+	tStart	= CurTime()
+	Set Progressbars Off
+	Call DEBUGPrint("Loading Benchmark File into TAB Format " & (CurTime() - tStart) & " secs")
+	sTempFile	= FILEWindowsTempFolder() & "__tmp_benchhmark.tab"
+	Register Table sTXTFile
+		 TYPE ASCII Delimiter 124 Titles Charset "WindowsLatin1"
+		 Into sTempFile
+
+	Open Table sTempFile Hide
+	sTab	= PathToTableName$(sTempFile)
+	Commit Table sTab As sTABFile
+	Close Table sTab
+	Open Table sTABFile
+	sTab	= PathToTableName$(sTABFile)
+
+	Call DEBUGPrint("Adding Totals Columns " & (CurTime() - tStart) & " secs")
+
+	Alter Table sTab ( Add PG_TOTAL Integer, PS_TOTAL Integer)
+
+	'**PSYTE Group Columns
+	Call DEBUGPrint("Adding PSYTE Group Columns " & (CurTime() - tStart) & " secs")
+	For nCol = 1 To PSYTECNumGroupColumns()
+		sCmd = PSYTECGetGroupColumn(nCol) + "+"
+	Next
+	sCmd = Left$(sCmd, Len(sCmd) - 1)
+	sCmd = "Update " & sTab & " Set PG_TOTAL = " & sCmd
+	Call DEBUGPrint(sCmd)
+	Run Command sCmd
+
+	Call DEBUGPrint("Updating PSYTE Group Columns " & (CurTime() - tStart) & " secs")
+	For nCol = 1 To PSYTECNumGroupColumns()
+		Alter Table sTab ( Add PSYTECGetGroupColumn(nCol) & "_PCT" Float )
+		sCmd = "Update " & sTab & " Set " & PSYTECGetGroupColumn(nCol) & "_PCT = Round((" & PSYTECGetGroupColumn(nCol) & " / PG_TOTAL) * 100, 0.01)"
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+	Next
+
+	'**PSYTE Segment Columns
+	Call DEBUGPrint("Adding PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
+	For nCol = 1 To PSYTECNumSegmentColumns()
+		sCmd = PSYTECGetSegmentColumn(nCol) + "+"
+	Next
+	sCmd = Left$(sCmd, Len(sCmd) - 1)
+	sCmd = "Update " & sTab & " Set PS_TOTAL = " & sCmd
+	Call DEBUGPrint(sCmd)
+	Run Command sCmd
+
+	Call DEBUGPrint("Updating PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
+	For nCol = 1 To PSYTECNumSegmentColumns()
+		Alter Table sTab ( Add PSYTECGetSegmentColumn(nCol) & "_PCT" Float )
+		sCmd = "Update " & sTab & " Set " & PSYTECGetSegmentColumn(nCol) & "_PCT = Round((" & PSYTECGetSegmentColumn(nCol) & " / PS_TOTAL) * 100, 0.01)"
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+	Next
+	Call DEBUGPrint("Finished after " & (CurTime() - tStart) & " secs")
+	Close Table sTab
+
+	Set Progressbars On
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELLoadBenchmarkTable: From " & sTXTFile & " into " & sTABFile)
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTELLoadSegmentLabelsTable(	  ByVal sTXTFile As String		'TXT File to load
+							, ByVal sTABFile As String		'TAB File to save it into
+							)
+Dim	sTempFile, sTab As String,
+	tStart As Time
+
+OnError GoTo ErrorOccured
+
+	tStart	= CurTime()
+	Set Progressbars Off
+
+	Call DEBUGPrint("Loading Segment Labels File into TAB Format " & (CurTime() - tStart) & " secs")
+	sTempFile	= FILEWindowsTempFolder() & "__tmp_segment_labels.tab"
+	Register Table sTXTFile
+		 TYPE ASCII Delimiter 124 Titles Charset "WindowsLatin1"
+		 Into sTempFile
+
+	Open Table sTempFile Hide
+	sTab	= PathToTableName$(sTempFile)
+	Commit Table sTab As sTABFile
+	Close Table sTab
+
+	Set Progressbars On
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELLoadSegmentLabelsTable: From " & sTXTFile & " into " & sTABFile)
+	Call ERRShow()
+
+End Sub
+
+

@@ -1,0 +1,699 @@
+﻿'*******************************************************************************
+'** Created by Peter Horsbøll Møller, Precisely
+'** Program:
+'** Modul:
+'**
+'*******************************************************************************
+'Additional improvements
+'	- Allow batch creation of analysis using multiple selected catchment areas or an entire table
+'	- Add support for benchmark values
+'	- Use catchment area to mask the map in the layout
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Enums.def"
+Include "Icons.def"
+Include "Menu.def"
+Include "RibbonControls.def"
+
+'**default constants...
+Include "Library\Defaults.def"
+'Include "Library\MI_ICONS_X64.def"
+'Include "Library\RibbonElements.def"
+
+Define xProgram 		"PSYTEAnalyzer"
+Define xProgramName		"PSYTE Analyzer"
+Define xProgramMenu		"PSYTE"
+Define xVersion 		"1.0"
+Define xYear			"2023"
+Define xAddToMenuBar	FALSE
+
+Define FILE_INI			GetFolderPath$(FOLDER_MI_PREFERENCE) & xProgram & ".ini"
+Define FILE_DBG			ApplicationDirectory$() & xProgram & ".dbg"
+Define FILE_HLP			ApplicationDirectory$() & xProgram & ".pdf"
+'Define FILE_DLL			ApplicationDirectory$() & xProgram & ".dll"
+'Define FILE_PAD			GetFolderPath$(FOLDER_MI_PREFERENCE) & xProgram & ".btp"
+Define PATH_IMAGES			ApplicationDirectory$() & "images\"
+
+'-------------------------------------
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\FILELib.def"
+Include "Library\MAPPERLib.def"
+Include "Library\ProgramInfo.def"
+Include "Library\RIBBONLib.def"
+Include "Library\STRINGLib.def"
+Include "Library\TABLELib.def"
+
+Include "PSYTEConfig.def"
+Include "PSYTELoader.def"
+Include "PSYTELayout.def"
+Include "PSYTECreateSingleAnalysisDlg.def"
+Include "PSYTECreateDualAnalysisDlg.def"
+
+'-----------------------------------------------------------------------------------------
+Declare Sub Main
+Declare Sub MENUBuildRibbonInterface
+Declare Sub EndProgram
+Declare Sub EndHandler
+
+Declare Sub PSYTESiteAnalysisSingle
+Declare Sub PSYTESiteAnalysisDual
+Declare Sub PSYTESiteAnalysisMultiple
+
+Declare Function PSYTECreateTempSiteTable(	  ByVal sQuery As String
+									, ByVal sName As String
+									) As String
+Declare Function PSYTECreateTempSegmTable(	  ByVal sSiteTab As String
+									) As String
+Declare Function PSYTEAddSiteToTempSegmTable(  ByVal sSegmTab As String
+									, ByVal sSiteTab As String
+									, ByVal sSiteID As String	'Typically this would be "2"
+									) As Logical
+
+
+Declare Sub PSYTESelectDataTabFile
+
+'**********************************************************************************************''
+'**   Created by Peter Horsbøll Møller, Precisely
+'
+'**********************************************************************************************''
+Sub Main
+
+Dim	bResult As Logical
+
+OnError GoTo ErrorOccured
+
+	'***Initializing ApplicationInfo
+	Call PRGISetApplicationName(xProgramName)
+	Call PRGISetApplicationVersion(xVersion)
+	Call PRGISetApplicationCopyrightYear(xYear)
+	Call PRGISetApplicationDevelopedBy("Peter Horsbøll Møller")
+	Call PRGISetDescription("")
+	Call PRGISetApplicationImageUri(PATH_IMAGES & "PSYTE_32.png")
+	Call PRGISetApplicationHelpFile(FILE_HLP)
+
+	'***Enabling Debug if file exists
+	Call DEBUGEnableByFile(FILE_DBG)
+
+	If SystemInfo(SYS_INFO_MAPINFO_INTERFACE) = MIINTERFACE_RIBBON Then
+		Call MENUBuildRibbonInterface
+	End If
+
+	Call PSYTECSetConfigFile(FILE_INI)
+	Call PSYTECReadConfigFile()
+
+	If PSYTECGetDataDirectory() = "" Then
+		Call PSYTESelectDataTabFile
+
+'		If PSYTECGetDataDirectory() = "" Then
+'
+'		End If
+	End If
+
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTop", "PSYTEGetTop", "Returns the value from a the top most PSYTE segments for the site")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTopExt", "PSYTEGetTopExt", "Returns the value from a the top most PSYTE segments for site1, site2 or benchmark")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteName", "PSYTEGetSiteName", "Returns the name of the sites. Use 1 for first site and 2 for second site")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteColumnValue", "PSYTEGetSiteValue", "Returns the value from a specified column of the first record in the site table")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteColumnValueErr", "PSYTEGetSiteValueErr", "Returns the value from a specified column of of the first record in the site table")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetColumnValue", "PSYTEGetColumnValue", "Returns the value from a specified column of a single record in the site table")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTableColumnValue", "PSYTEGetTableColumnValue", "Returns the value from a specified column of a single record in a specific table")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTableColumnNames", "PSYTEGetTableColumnNames", "Returns the Column Names from a specific table with a given separator")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTableRowValues", "PSYTEGetTableRowValues", "Returns the values from a single record in a specific table with a given separator")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTableColumnValues", "PSYTEGetTableColumnValues", "Returns all the values from a single column in a specific table with a given separator")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTableColumnNameValues", "PSYTEGetTableNameValues", "Returns the column names and values from a single record in a specific table with a given separator")
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "Main")
+	Call ERRShow()
+
+End Sub
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub MENUBuildRibbonInterface
+
+Dim	sTabName, sGroupName As String,
+	nCtrlIdx As Integer
+
+OnError GoTo ErrorOccured
+
+	sTabName		= "tabAnalysis"
+	If NOT RBNTabExists(sTabName) Then
+		nCtrlIdx	= RBNInsertTabAfter(sTabName, "Analysis", "", TAB_SPATIAL)
+	End If
+
+	sGroupName	= "grpPSYTE"
+	nCtrlIdx	= RBNTabAddGroup(sGroupName, "PSYTE", sTabName)
+
+	nCtrlIdx	= RBNGroupAddButton("cmdSingleSite", "Single Site", "", sTabName, sGroupName)
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, PRGIGetApplicationName(), "Analyze a single selected site using PSYTE data.", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_LARGE, "", PATH_IMAGES & "PSYTE_64.png")
+'		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_LARGE, "", MI_IMG_MAP_REDISTRICTER_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "PSYTESiteAnalysisSingle")
+	End If
+	nCtrlIdx	= RBNGroupAddButton("cmdDualSites", "Dual Sites", "", sTabName, sGroupName)
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, PRGIGetApplicationName(), "Analyze and compare two selected sites using PSYTE data.", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_LARGE, "", PATH_IMAGES & "PSYTE_64.png")
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "PSYTESiteAnalysisDual")
+	End If
+'	nCtrlIdx	= RBNGroupAddButton("cmdMultipleSites", "Multiple Sites", "", sTabName, sGroupName)
+'	If nCtrlIdx > 0 Then
+'		Call RBNControlSetToolTipIdx(nCtrlIdx, PRGIGetApplicationName(), "Analyze and compare multiple selected sites using PSYTE data.", "")
+'		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_LARGE, "", MI_IMG_MAP_REDISTRICTER_32)
+'		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "PSYTESiteAnalysisMultiple")
+'	End If
+
+	nCtrlIdx	= RBNGroupAddControl("cmdPSYTESeparatorConfig", "", "", ControlType_RibbonSeparator, sTabName, sGroupName)
+
+	nCtrlIdx	= RBNGroupAddButton("cmdSelectDataFolder", "PSYTE Table", "", sTabName, sGroupName)
+	If nCtrlIdx > 0 Then
+		Call RBNControlSetToolTipIdx(nCtrlIdx, PRGIGetApplicationName(), "Select tab file containing PSYTE data.", "")
+		Call RBNControlSetIconsIdx(nCtrlIdx, CONTROL_SIZE_LARGE, "", MI_IMG_APP_OPENFOLDER_32)
+		Call RBNControlSetCustomMBXHandlerIdx(nCtrlIdx, "PSYTESelectDataTabFile")
+	End If
+
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "MENUBuildRibbonInterface")
+	Call ERRShow()
+
+End Sub
+
+'****************************************
+'**   Created by Peter Horsbøll Møller, Precisely
+'**   Ending MapBasic application
+'****************************************
+Sub EndProgram
+
+OnError GoTo ErrorOccured
+
+	End Program
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "EndProgram")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub EndHandler
+
+OnError GoTo ErrorOccured
+
+	Call PSYTECWriteConfigFile()
+	Call RBNEndHandler
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "EndHandler")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTESiteAnalysisSingle
+
+Dim	sQuery, sName, sSiteTab, sSegmTab As String,
+	nMID As Integer,
+	aCol As Alias
+
+OnError GoTo ErrorOccured
+
+	If Not SelectionInfo(SEL_INFO_NROWS) = 1 Then
+		Note "Please select a single site to analyze!"
+		Exit Sub
+	End If
+
+	nMID	= MAPFrontWindow()
+	If nMID = 0 Then
+		Note "Please have a map window as the front most window!"
+		Exit Sub
+	End If
+
+	If PSYTECGetDataDirectory() = "" Then
+		Call PSYTESelectDataTabFile
+'		If TABIsOpen(PSYTECTable("")) Then
+'			Call PSYTECSetDataDirectory(PathToDirectory$(TableInfo(PSYTECTable(""), TAB_INFO_TABFILE)))
+'		End If
+		If PSYTECGetDataDirectory() = "" Then
+			Exit Sub
+		End If
+	End If
+
+	sQuery = SelectionInfo(SEL_INFO_SELNAME)
+	If Not PSYTECreateSingleAnalysisDlg(sQuery) Then
+		Exit Sub
+	End If
+
+	Fetch First From sQuery
+	aCol		=  sQuery & "." & PSYTECSADGetNameColumn()
+	sName	= aCol
+
+	'**Creating Site Table
+	sSiteTab	= PSYTECreateTempSiteTable(sQuery, sName)
+	If sSiteTab = "" Then
+		Note "Site table for Site '" & sName & "' could not be created!"
+		Exit Sub
+	End If
+
+	'**Creating Segment Table
+	sSegmTab	= PSYTECreateTempSegmTable(sSiteTab)
+	If sSegmTab = "" Then
+		Note "Segments table for Site '" & sName & "' could not be created!"
+		Exit Sub
+	End If
+
+	If PSYTECSADAddBenchmark() Then
+		If Not FileExists(PSYTECBenchmarkTabFile()) Then
+			Call DEBUGPrint("Loading Benchmark file...")
+			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile(), PSYTECBenchmarkTabFile())
+		End If
+		If Not FileExists(PSYTECBenchmarkTabFile()) Then
+
+		Else
+			Print "Benchmark file not found: " & PSYTECBenchmarkTabFile()
+			Note "Benchmark File was not loaded therefor benchmarks can't be used!"
+		End If
+	End If
+
+	Set Progressbars On
+
+	Call PSYTELayoutNewSingleSite(nMID, sName, sSiteTab, sSegmTab, PSYTECSADGetLayoutTemplateFile())
+
+	Call TABClose(sQuery)
+	Call TABClose(sSegmTab)
+	Call TABClose(sSiteTab)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTESiteAnalysisSingle")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTESiteAnalysisDual
+
+Dim	sQuery, arrNames(2), arrSiteTables(2), arrSegmTables(2) As String,
+	nTab, nMID As Integer,
+	aCol As Alias
+
+OnError GoTo ErrorOccured
+
+	If Not SelectionInfo(SEL_INFO_NROWS) = 2 Then
+		Note "Please select two single site to analyze!"
+		Exit Sub
+	End If
+
+	nMID	= MAPFrontWindow()
+	If nMID = 0 Then
+		Note "Please have a map window as the front most window!"
+		Exit Sub
+	End If
+
+	If PSYTECGetDataDirectory() = "" Then
+		Call PSYTESelectDataTabFile
+'		If TABIsOpen(PSYTECTable("")) Then
+'			Call PSYTECSetDataDirectory(PathToDirectory$(TableInfo(PSYTECTable(""), TAB_INFO_TABFILE)))
+'		End If
+		If PSYTECGetDataDirectory() = "" Then
+			Exit Sub
+		End If
+	End If
+
+	sQuery = SelectionInfo(SEL_INFO_SELNAME)
+	If Not PSYTECreateDualAnalysisDlg(sQuery) Then
+		Exit Sub
+	End If
+
+	aCol		= sQuery & "." & PSYTECDADGetNameColumn()
+
+	'**Creating Site Tables
+	For nTab = 1 To 2
+		Fetch Rec PSYTECDADGetRowID(nTab) From sQuery
+		arrNames(nTab)	= aCol
+
+		Call DEBUGPrint("Selecting RowID " & PSYTECDADGetRowID(nTab) & " From " & sQuery)
+		Select * From sQuery
+			Where ROWID = PSYTECDADGetRowID(nTab)
+			Into __temp_site NoSelect 'Hide
+
+		arrSiteTables(nTab)	= PSYTECreateTempSiteTable("__temp_site", arrNames(nTab))
+		If arrSiteTables(nTab) = "" Then
+			Note "Site table for Site '" & arrNames(nTab) & "' could not be created!"
+			Exit Sub
+		End If
+		Call TABClose("__temp_site")
+
+		'**Creating Segment Table for Site Table
+		arrSegmTables(nTab)	= PSYTECreateTempSegmTable(arrSiteTables(nTab))
+		If arrSegmTables(nTab) = "" Then
+			Note "Segments table for Site '" & arrNames(nTab) & "' could not be created!"
+			Exit Sub
+		End If
+	Next
+
+	'**Adding Site 2 to Segment Table
+	If not PSYTEAddSiteToTempSegmTable(arrSegmTables(1), arrSegmTables(2), "2") Then
+		Note "Segments table for Site '" & arrNames(1) & "' could not be updated with data from Site '" & arrNames(2) & "'!"
+		Exit Sub
+	End If
+
+	If PSYTECDADAddBenchmark() Then
+		If Not FileExists(PSYTECBenchmarkTabFile()) Then
+			Call DEBUGPrint("Loading Benchmark file...")
+			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile(), PSYTECBenchmarkTabFile())
+		End If
+		If Not FileExists(PSYTECBenchmarkTabFile()) Then
+
+		Else
+			Print "Benchmark file not found: " & PSYTECBenchmarkTabFile()
+			Note "Benchmark File was not loaded therefor benchmarks can't be used!"
+		End If
+	End If
+
+	Set Progressbars On
+
+	Call PSYTELayoutNewDualSites(nMID, arrNames(), arrSiteTables(), arrSegmTables(1), PSYTECDADGetLayoutTemplateFile())
+
+	Call TABClose(sQuery)
+	Call TABClose(arrSegmTables(1))
+	Call TABClose(arrSegmTables(2))
+	Call TABClose(arrSiteTables(1))
+	Call TABClose(arrSiteTables(2))
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTESiteAnalysisDual")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECreateTempSiteTable(	  ByVal sQuery As String
+							, ByVal sName As String
+							) As String
+
+Dim	sSiteTab, sCmd, sTabFile As String,
+	nCol As Integer,
+	oSite As Object,
+	aCol, aProp, aOBJ As Alias
+
+OnError GoTo ErrorOccured
+
+PSYTECreateTempSiteTable	= ""
+
+	Fetch First From sQuery
+	aOBJ		= sQuery & ".OBJ"
+	oSite	= aOBJ
+
+	sTabFile	= PathToTableName$(sName) & ".tab"
+	sTabFile	= STRINGReplace(sTabFile, "__", "_")
+	sTabFile	= STRINGReplace(sTabFile, "_", " ")
+	sTabFile	= FILEWindowsTempFolder() & "_" & sTabFile
+	sSiteTab	= PathToTableName$(sTabFile)
+
+	If TABIsOpen(sSiteTab) Then
+'		If Ask("A table with the name '" & sSiteTab & "' is already open and needs to be closed before the process can continue!", "Abort", "Close Table") Then
+'			Exit Sub
+'		End If
+		Call TABClose(sSiteTab)
+	End If
+
+	Set Progressbars Off
+
+	Select q.*, psyte.*, ProportionOverlap(psyte.obj, q.OBJ) As "proportion_overlap"
+		From PSYTECTable("") As "psyte", sQuery As "q"
+		Where q.OBJ Intersects psyte.OBJ
+		And Area(Overlap(q.OBJ, psyte.OBJ), "sq m") >= 0.5
+		Into __CURRENT__SITE NoSelect Hide
+
+	Commit Table __CURRENT__SITE
+		As sTabFile
+	Open Table sTabFile
+'	sSiteTab	= TableInfo(0, TAB_INFO_NAME)
+	Call TABClose("__CURRENT__SITE")
+
+	For nCol = 1 To PSYTECNumProportionColumns()
+		Call DEBUGPrint(nCol & ": " & PSYTECGetProportionColumn(nCol))
+		aCol		= sSiteTab & "." & PSYTECGetProportionColumn(nCol)
+		aProp	= sSiteTab & ".proportion_overlap"
+		sCmd = "Update " & sSiteTab
+				& " Set " & PSYTECGetProportionColumn(nCol) & " = " & PSYTECGetProportionColumn(nCol) & " * proportion_overlap"
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+	Next
+	Update sSiteTab
+		Set OBJ = Overlap(OBJ, oSite)
+	Commit Table sSiteTab
+
+	PSYTECreateTempSiteTable = sSiteTab
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECreateTempSiteTable")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECreateTempSegmTable(	  ByVal sSiteTab As String
+							) As String
+
+Dim	sTabFile, sSegmTab, sCmd As String,
+	nCol, nTotal, nWidth As Integer,
+	aCol As Alias
+
+OnError GoTo ErrorOccured
+
+PSYTECreateTempSegmTable = ""
+
+	sSegmTab	= sSiteTab & "_segments"
+	Call DEBUGPrint("PSYTECreateTempSegmTable: Create Segment Table '" & sSegmTab & "' for Site Table '" & sSiteTab & "'")
+	If TABIsOpen(sSegmTab) Then
+'		If Ask("A table with the name '" & sSegmTab & "' is already open and needs to be closed before the process can continue!", "Abort", "Close Table") Then
+'			Exit Sub
+'		End If
+		Call TABClose(sSegmTab)
+	End If
+
+	If Not FileExists(PSYTECSegmentLabelsTabFile()) Then
+		Call DEBUGPrint("Loading Segment Labels file...")
+		Call PSYTELLoadSegmentLabelsTable(PSYTECSegmentLabelsTxtFile(), PSYTECSegmentLabelsTabFile())
+	End If
+
+	If FileExists(PSYTECSegmentLabelsTabFile()) Then
+		Open Table PSYTECSegmentLabelsTabFile()
+		nWidth = ColumnInfo(PSYTECSegmentLabelsTable(), "Label", COL_INFO_WIDTH)
+
+		Alter Table sSiteTab
+			(Add seg_label Char(nWidth))
+
+		sCmd = "Add Column " & sSiteTab
+				& " (seg_label)"
+				& " From " & PSYTECSegmentLabelsTable()
+				& " Set To Label"
+				& " Where psyte_seg = psyte_seg"
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+		Commit Table sSiteTab
+		Call TABClose(PSYTECSegmentLabelsTable())
+
+	Else
+		Note "Segments File was not loaded therefor segments labels will be empty!"
+		Alter Table sSiteTab
+			(Add seg_label Char(50))
+	End If
+
+	Select s.psyte_seg, seg_label
+		, Sum(s.households) As "households"
+		, Sum(s.population) As "population"
+		, AggregateCombine(s.obj)
+		From sSiteTab As "s"
+		Group By s.psyte_seg
+		Order By s.psyte_seg
+		Into sSegmTab NoSelect Hide
+
+	sTabFile	= FILEWindowsTempFolder() & sSegmTab & ".tab"
+	Commit Table sSegmTab As sTabFile
+	Call TABClose(sSegmTab)
+	Open Table sTabFile
+
+	For nCol = 1 To PSYTECNumProportionColumns()
+		aCol		= sSegmTab & "." & PSYTECGetProportionColumn(nCol)
+		Select Sum(aCol) As "total"
+			From sSegmTab
+			Into __TOTALS NoSelect Hide
+
+		Fetch First From __TOTALS
+		nTotal = __TOTALS.total
+		Call TABClose("__TOTALS")
+		Alter Table sSegmTab
+			(Add PSYTECGetProportionColumn(nCol) & "_pct" Float)
+
+		sCmd = "Update " & sSegmTab
+				& " Set " & PSYTECGetProportionColumn(nCol) & "_pct" & " = Round((" & PSYTECGetProportionColumn(nCol) & " / " & Str$(nTotal) & ") * 100, 0.01)"
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+		Commit Table sSegmTab
+	Next
+
+	PSYTECreateTempSegmTable = sSegmTab
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECreateTempSegmTable")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTEAddSiteToTempSegmTable(	  ByVal sSegmTab As String
+								, ByVal sSegmTabToAdd As String
+								, ByVal sSiteID As String	'Typically this would be "2"
+								) As Logical
+Dim	nCol As Integer,
+	sCmd As String
+
+OnError GoTo ErrorOccured
+
+PSYTEAddSiteToTempSegmTable = FALSE
+
+	For nCol = 1 To PSYTECNumProportionColumns()
+		'Alter Table "Site_A_segments" ( add households_2 Float ) Interactive
+		'Add Column "Site_A_segments" (households_2 )From Site_B_segments Set To households Where COL1 = COL1
+
+		Alter Table sSegmTab
+			(Add PSYTECGetProportionColumn(nCol) & "_" & sSiteID Float
+				, PSYTECGetProportionColumn(nCol) & "_PCT_" & sSiteID Float
+				)
+
+		sCmd = "Add Column " & sSegmTab & "(" & PSYTECGetProportionColumn(nCol) & "_" & sSiteID & ")"
+			& " From " & sSegmTabToAdd
+			& " Set To " & PSYTECGetProportionColumn(nCol)
+			& " Where psyte_seg = psyte_seg"
+
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+		Commit Table sSegmTab
+
+		sCmd = "Add Column " & sSegmTab & "(" & PSYTECGetProportionColumn(nCol) & "_PCT_" & sSiteID & ")"
+			& " From " & sSegmTabToAdd
+			& " Set To " & PSYTECGetProportionColumn(nCol) & "_PCT"
+			& " Where psyte_seg = psyte_seg"
+
+		Call DEBUGPrint(sCmd)
+		Run Command sCmd
+		Commit Table sSegmTab
+	Next
+
+	PSYTEAddSiteToTempSegmTable = TRUE
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTEAddSiteToTempSegmTable")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTESiteAnalysisMultiple
+
+OnError GoTo ErrorOccured
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTESiteAnalysisMultiple")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTESelectDataTabFile
+
+Dim	sFolder, sFile As String
+
+OnError GoTo ErrorOccured
+
+	If PSYTECGetDataTabFile() = "" Then
+		sFolder = GetPreferencePath$(PREFERENCE_PATH_TABLE)
+	Else
+		sFolder = PSYTECGetDataTabFile()
+	End If
+
+
+	sFile = FileOpenDlg(sFolder, PathToFileName$(PSYTECGetDataTabFile()), "TAB", "Select TAB File holdings PSYTE data...")
+	If sFile = "" Then
+		Exit Sub
+	End If
+
+'	Call PSYTECSetDataDirectory(PathToDirectory$(sFile))
+	Call PSYTECSetDataTabFile(sFile)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTESelectDataTabFile")
+	Call ERRShow()
+
+End Sub
+
+

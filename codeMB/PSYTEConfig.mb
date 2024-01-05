@@ -1,0 +1,660 @@
+﻿'*******************************************************************************
+'** 	Created By Peter Horsbøll Møller, Precisely
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+
+'-------------------------------------
+Include "Library\ARRAYLib.def"
+Include "Library\CONFIGFILELib.def"
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\FILELib.def"
+Include "Library\TABLELib.def"
+
+Include "PSYTEConfig.def"
+
+Dim	marrProportionColumnNames(), marrGroupColumnNames(), marrSegmentColumnNames() As String,
+	marrSingleSiteLayoutFiles(), marrSingleSiteBenchmarkLayoutFiles() As String,
+	marrDualSiteLayoutFiles(), marrDualSiteBenchmarkLayoutFiles() As String,
+	msConfigFile, msDataDirectory, msDataTabFile As String,
+	mfZoomScale As Float
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECTable(ByVal sType As String) As String
+
+OnError GoTo ErrorOccured
+
+	Do Case sType
+		Case "", "psyte"
+			PSYTECTable	= PathToTableName$(PSYTECGetDataTabFile())
+		Case "SegmentLabels"
+			PSYTECTable	= PSYTECSegmentLabelsTable()
+		Case "Benchmark"
+			PSYTECTable	= PSYTECBenchmarkTable()
+	End Case
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECTable")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECBenchmarkTabFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECBenchmarkTabFile	= PSYTECGetDataDirectory() & "psyte_us_bench.TAB"
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECBenchmarkTabFile")
+	Call ERRShow()
+
+End Function
+'**********************************************************************************************''
+Function PSYTECBenchmarkTxtFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECBenchmarkTxtFile	= PSYTECGetDataDirectory() & "psyte_us_bench.txt"
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECBenchmarkTxtFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+Function PSYTECBenchmarkTable() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECBenchmarkTable	= PathToTableName$(PSYTECBenchmarkTabFile())
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECBenchmarkTable")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSegmentLabelsTabFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSegmentLabelsTabFile	= PSYTECGetDataDirectory() & "psyte_usa_seg_labels.TAB"
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSegmentLabelsTabFile")
+	Call ERRShow()
+
+End Function
+'**********************************************************************************************''
+Function PSYTECSegmentLabelsTxtFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSegmentLabelsTxtFile	= PSYTECGetDataDirectory() & "psyte_usa_seg_labels.txt"
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSegmentLabelsTxtFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+Function PSYTECSegmentLabelsTable() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSegmentLabelsTable	= PathToTableName$(PSYTECSegmentLabelsTabFile())
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSegmentLabelsTable")
+	Call ERRShow()
+
+End Function
+
+
+'**********************************************************************************************''
+' Property
+'**********************************************************************************************''
+Sub PSYTECSetDataDirectory(ByVal sValue As String)
+
+OnError GoTo ErrorOccured
+
+	msDataDirectory = sValue
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSetDataDirectory")
+
+End Sub
+'**********************************************************************************************''
+Function PSYTECGetDataDirectory() As String
+
+OnError GoTo ErrorOccured
+
+	If msDataDirectory = "" Then
+		msDataDirectory = PathToDirectory$(PSYTECGetDataTabFile())
+	End If
+	PSYTECGetDataDirectory = msDataDirectory
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetDataDirectory")
+
+End Function
+
+'**********************************************************************************************''
+' Property
+'**********************************************************************************************''
+Sub PSYTECSetDataTabFile(ByVal sValue As String)
+
+OnError GoTo ErrorOccured
+
+	msDataTabFile = sValue
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSetDataTabFile")
+
+End Sub
+'**********************************************************************************************''
+Function PSYTECGetDataTabFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECGetDataTabFile = msDataTabFile
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetDataTabFile")
+
+End Function
+
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECNumProportionColumns() As Integer
+
+OnError GoTo ErrorOccured
+
+	If Ubound(marrProportionColumnNames) = 0 Then
+		Call ARRAYAddValueString(marrProportionColumnNames, "households")
+		Call ARRAYAddValueString(marrProportionColumnNames, "population")
+	End If
+
+	PSYTECNumProportionColumns = Ubound(marrProportionColumnNames)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECNumProportionColumns")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+Function PSYTECGetProportionColumn(ByVal nCol As Integer) As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECGetProportionColumn = ""
+	If nCol > 0 and nCol <= PSYTECNumProportionColumns() Then
+		PSYTECGetProportionColumn = marrProportionColumnNames(nCol)
+	End If
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetProportionColumn")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECNumGroupColumns() As Integer
+
+OnError GoTo ErrorOccured
+
+	If Ubound(marrGroupColumnNames) = 0 Then
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG01")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG02")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG03")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG04")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG05")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG06")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG07")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG08")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG09")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG010")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG011")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG012")
+		Call ARRAYAddValueString(marrGroupColumnNames, "PG0NC")
+	End If
+
+	PSYTECNumGroupColumns = Ubound(marrGroupColumnNames)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECNumGroupColumns")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+Function PSYTECGetGroupColumn(ByVal nCol As Integer) As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECGetGroupColumn = ""
+	If nCol > 0 and nCol <= PSYTECNumGroupColumns() Then
+		PSYTECGetGroupColumn = marrGroupColumnNames(nCol)
+	End If
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetGroupColumn")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECNumSegmentColumns() As Integer
+
+Dim	nCount As Integer
+
+OnError GoTo ErrorOccured
+
+	If Ubound(marrSegmentColumnNames) = 0 Then
+		For nCount = 1 To 4
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS01_" & nCount)
+		Next
+		For nCount = 1 To 5
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS02_" & nCount)
+		Next
+		For nCount = 1 To 4
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS03_" & nCount)
+		Next
+		For nCount = 1 To 5
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS04_" & nCount)
+		Next
+		For nCount = 1 To 4
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS05_" & nCount)
+		Next
+		For nCount = 1 To 7
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS06_" & nCount)
+		Next
+		For nCount = 1 To 7
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS07_" & nCount)
+		Next
+		For nCount = 1 To 7
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS08_" & nCount)
+		Next
+		For nCount = 1 To 6
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS09_" & nCount)
+		Next
+		For nCount = 1 To 5
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS10_" & nCount)
+		Next
+		For nCount = 1 To 4
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS11_" & nCount)
+		Next
+		For nCount = 1 To 5
+			Call ARRAYAddValueString(marrSegmentColumnNames, "PS12_" & nCount)
+		Next
+		Call ARRAYAddValueString(marrSegmentColumnNames, "PSNC_0")
+	End If
+
+	PSYTECNumSegmentColumns = Ubound(marrSegmentColumnNames)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECNumSegmentColumns")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+Function PSYTECGetSegmentColumn(ByVal nCol As Integer) As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECGetSegmentColumn = ""
+	If nCol > 0 and nCol <= PSYTECNumSegmentColumns() Then
+		PSYTECGetSegmentColumn = marrSegmentColumnNames(nCol)
+	End If
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetSegmentColumn")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECGetLayoutFiles( ByVal sType As String, arrFiles() As String) As Integer
+
+OnError GoTo ErrorOccured
+
+	Do Case sType
+		Case "SingleSiteWithoutBenchmark"
+			Call ARRAYCopyString(marrSingleSiteLayoutFiles, arrFiles)
+		Case "SingleSiteWithBenchmark"
+			Call ARRAYCopyString(marrSingleSiteBenchmarkLayoutFiles, arrFiles)
+	End Case
+
+	PSYTECGetLayoutFiles = Ubound(arrFiles)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetLayoutFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECGetLayoutNames( ByVal sType As String, arrFiles() As String) As Integer
+
+Dim	nFile As Integer
+
+OnError GoTo ErrorOccured
+
+	Do Case sType
+		Case "SingleSiteWithoutBenchmark"
+			Call ARRAYCopyString(marrSingleSiteLayoutFiles, arrFiles)
+		Case "SingleSiteWithBenchmark"
+			Call ARRAYCopyString(marrSingleSiteBenchmarkLayoutFiles, arrFiles)
+		Case "DualSiteWithoutBenchmark"
+			Call ARRAYCopyString(marrDualSiteLayoutFiles, arrFiles)
+		Case "DualSiteWithBenchmark"
+			Call ARRAYCopyString(marrDualSiteBenchmarkLayoutFiles, arrFiles)
+	End Case
+
+	For nFile = 1 To Ubound(arrFiles)
+		arrFiles(nFile)	= PathToFileName$(arrFiles(nFile))
+	Next
+
+	PSYTECGetLayoutNames = Ubound(arrFiles)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetLayoutNames")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECGetLayoutFile( ByVal sType As String, ByVal nLayout As Integer) As String
+
+OnError GoTo ErrorOccured
+
+	Do Case sType
+		Case "SingleSiteWithoutBenchmark"
+			PSYTECGetLayoutFile = marrSingleSiteLayoutFiles(nLayout)
+		Case "SingleSiteWithBenchmark"
+			PSYTECGetLayoutFile = marrSingleSiteBenchmarkLayoutFiles(nLayout)
+		Case "DualSiteWithoutBenchmark"
+			PSYTECGetLayoutFile = marrDualSiteLayoutFiles(nLayout)
+		Case "DualSiteWithBenchmark"
+			PSYTECGetLayoutFile = marrDualSiteBenchmarkLayoutFiles(nLayout)
+	End Case
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECGetLayoutFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+' Property
+'**********************************************************************************************''
+Sub PSTYECSetZoomScale(ByVal fScale As Float)
+
+OnError GoTo ErrorOccured
+
+	mfZoomScale = mfZoomScale
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSTYECSetZoomScale")
+
+End Sub
+'**********************************************************************************************''
+Function PSTYECGetZoomScale() As Float
+
+OnError GoTo ErrorOccured
+
+	'**Zoom scale would typicalle be around 1, maybe 0.8 to 1.5
+	'**If the value is below 1, the zoom would get smaller and the map would zoom closer into the center
+	mfZoomScale = IIf(mfZoomScale = 0, 1.0, mfZoomScale)
+	PSTYECGetZoomScale = mfZoomScale
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSTYECGetZoomScale")
+
+End Function
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECReadConfigFile
+
+Dim	sValue As String,
+	nFile As Integer
+
+OnError GoTo ErrorOccured
+
+	sValue = CONFIGReadKey(msConfigFile, "DATA", "FOLDER")
+	If sValue <> "" Then
+		Call PSYTECSetDataDirectory(sValue)
+	End If
+	sValue	= CONFIGReadKey(msConfigFile, "DATA", "PSYTETABFILE")
+	If sValue <> "" Then
+		Call PSYTECSetDataTabFile(sValue)
+	End If
+
+	sValue = CONFIGReadKey(msConfigFile, "MAP", "ZOOMSCALE")
+	Call PSTYECSetZoomScale(Val(sValue))
+
+	nFile	= 0
+	Do Until FALSE
+		nFile	= nFile + 1
+		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_SINGLE_SITE", "LAYOUT" & nFile)
+		If sValue = "" Then
+			If nFile = 1 Then
+				Call ARRAYAddValueString(marrSingleSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Single Site A4.wor"))
+			End If
+			Exit Do
+		Else
+			Call ARRAYAddValueString(marrSingleSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), sValue))
+		End If
+	Loop
+
+	nFile	= 0
+	Do Until FALSE
+		nFile	= nFile + 1
+		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_SINGLE_SITE_BENCHMARK", "LAYOUT" & nFile)
+		If sValue = "" Then
+			If nFile = 1 Then
+				Call ARRAYAddValueString(marrSingleSiteBenchmarkLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Single Site Benchmark A4.wor"))
+			End If
+			Exit Do
+		Else
+			Call ARRAYAddValueString(marrSingleSiteBenchmarkLayoutFiles(), FILEGetAbsolutePath(ApplicationDirectory$(), sValue))
+		End If
+	Loop
+
+	nFile	= 0
+	Do Until FALSE
+		nFile	= nFile + 1
+		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_DUAL_SITES", "LAYOUT" & nFile)
+		If sValue = "" Then
+			If nFile = 1 Then
+				Call ARRAYAddValueString(marrDualSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Dual Sites Legend A4.wor"))
+			End If
+			Exit Do
+		Else
+			Call ARRAYAddValueString(marrDualSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), sValue))
+		End If
+	Loop
+
+	nFile	= 0
+	Do Until FALSE
+		nFile	= nFile + 1
+		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_DUAL_SITES_BENCHMARK", "LAYOUT" & nFile)
+		If sValue = "" Then
+			If nFile = 1 Then
+				Call ARRAYAddValueString(marrDualSiteBenchmarkLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Dual Sites Benchmark A4.wor"))
+			End If
+			Exit Do
+		Else
+			Call ARRAYAddValueString(marrDualSiteBenchmarkLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), sValue))
+		End If
+	Loop
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECReadConfigFile")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECWriteConfigFile
+
+Dim	nFile As Integer
+
+OnError GoTo ErrorOccured
+
+	Call CONFIGWriteKey(msConfigFile, "DATA", "FOLDER", PSYTECGetDataDirectory())
+	Call CONFIGWriteKey(msConfigFile, "DATA", "PSYTETABFILE", PSYTECGetDataTabFile())
+
+	Call CONFIGWriteKey(msConfigFile, "MAP", "ZOOMSCALE", Str$(PSTYECGetZoomScale()))
+
+	For nFile = 1 To Ubound(marrSingleSiteLayoutFiles)
+		Call CONFIGWriteKey(msConfigFile, "LAYOUT_SINGLE_SITE", "LAYOUT" & nFile, FILEGetRelativePath(ApplicationDirectory$(), marrSingleSiteLayoutFiles(nFile)))
+	Next
+
+	For nFile = 1 To Ubound(marrSingleSiteBenchmarkLayoutFiles)
+		Call CONFIGWriteKey(msConfigFile, "LAYOUT_SINGLE_SITE_BENCHMARK", "LAYOUT" & nFile, FILEGetRelativePath(ApplicationDirectory$(), marrSingleSiteBenchmarkLayoutFiles(nFile)))
+	Next
+
+	For nFile = 1 To Ubound(marrDualSiteLayoutFiles)
+		Call CONFIGWriteKey(msConfigFile, "LAYOUT_DUAL_SITES", "LAYOUT" & nFile, FILEGetRelativePath(ApplicationDirectory$(), marrDualSiteLayoutFiles(nFile)))
+	Next
+
+	For nFile = 1 To Ubound(marrDualSiteBenchmarkLayoutFiles)
+		Call CONFIGWriteKey(msConfigFile, "LAYOUT_DUAL_SITES_BENCHMARK", "LAYOUT" & nFile, FILEGetRelativePath(ApplicationDirectory$(), marrDualSiteBenchmarkLayoutFiles(nFile)))
+	Next
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECWriteConfigFile")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECSetConfigFile( ByVal sFile As String)
+
+OnError GoTo ErrorOccured
+
+	msConfigFile = sFile
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSetConfigFile")
+	Call ERRShow()
+
+End Sub
+

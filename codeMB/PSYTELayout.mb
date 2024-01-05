@@ -1,0 +1,1235 @@
+﻿'*******************************************************************************
+'** 	Created By Peter Horsbøll Møller, Precisely
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+
+'-------------------------------------
+Include "Library\COLUMNLib.def"
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\FILELib.def"
+Include "Library\LAYERLib.def"
+Include "Library\STRINGLib.def"
+Include "Library\TABLELib.def"
+Include "Library\THEMELib.def"
+
+Include "PSYTELayout.def"
+Include "PSYTEConfig.def"
+
+Type LAYOUT_TEXT_FRAME
+	nFrameID		As Integer
+	sText		As String
+	sSmartText	As String
+	sFrameName	As String
+End Type
+
+Type LAYOUT_RECT_FRAME
+	nFrameID		As Integer
+	fOriginalWidth As Float
+	fScaledWidth	As Float
+	sFrameName	As String
+End Type
+
+Type T_SEGMENT_TOP
+	sSegm As String
+	sLabel As String
+	nHouseholdCount As Integer
+	nPopulationCount As Integer
+	fHouseholdPct As Float
+	fPopulationPct As Float
+	nHouseholdCount2 As Integer
+	nPopulationCount2 As Integer
+	fHouseholdPct2 As Float
+	fPopulationPct2 As Float
+	nHouseholdCountBM As Integer
+	nPopulationCountBM As Integer
+	fHouseholdPctBM As Float
+	fPopulationPctBM As Float
+End Type
+
+'Texts to Look for - these will become hardcoded texts
+'Graphbar(Site1Top[1].hh_pct) 	: Site1Top[1] - Site1Top[10]
+'Graphbar(Site1Top[1].pop_pct)	: Site1Top[1] - Site1Top[10]
+'Graphbar(Site2Top[1].hh_pct) 	: Site2Top[1] - Site2Top[10]
+'Graphbar(Site2Top[1].pop_pct) 	: Site2Top[1] - Site2Top[10]
+
+Declare Sub PSYTEUpdateGraphbar(	  ByVal nLayoutID As Integer
+							, ByVal nFrameID As Integer
+							, ByVal sFrameName As String		'Graphbar(Site1Top[1].hh_pct)
+							)
+Declare Sub PSYTEUpdateGraphcolumn(  ByVal nLayoutID As Integer
+							, ByVal nFrameID As Integer
+							, ByVal sFrameName As String		'Graphcolumn(Site1Top[1].hh_pct)
+							)
+Declare Sub PSYTEUpdateLegendStyle(  ByVal nLayoutID As Integer
+							, ByVal nFrameID As Integer
+							, ByVal sFrameName As String		'LegendStyle(Site1Top[1])
+							)
+
+
+Dim	marrSegmentTop() AS T_SEGMENT_TOP,
+	marrThemeItems() As T_INDIVIDUAL_ITEMS,
+	marrSiteTables(2), msSegmentTab As String,
+	marrSiteNames(2) As String
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTELayoutNewSingleSite(	  ByVal nMID As Integer
+						, ByVal sName As String
+						, ByVal sSiteTab As String
+						, ByVal sSegmentsTab As String
+						, ByVal sLayoutFile As String
+						)
+
+Dim	nLayoutID, nLayoutMID, nLayerID, nThemeLayerID As Integer,
+	nFrame, nMapFrameID, nTopNo As Integer,
+	sFrameName, sText As String,
+	bThemeFound As Logical
+
+OnError GoTo ErrorOccured
+
+	marrSiteTables(1)	= sSiteTab
+	msSegmentTab		= sSegmentsTab
+	marrSiteNames(1)	= sName
+
+	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
+	nLayoutID	= FrontWindow()
+
+	Set Window nLayoutID Title marrSiteNames(1)
+
+	nMapFrameID	= LayoutItemID(nLayoutID, "Map Site1", LAYOUT_ITEM_TYPE_EMPTY)
+
+	'--------------------------------------------
+	'** Adding the map to the layout
+	Set Designer Frame
+		Window nLayoutID
+		ID nMapFrameID
+		From Window nMID
+
+	nLayoutMID	= LayoutItemInfo(nLayoutID, nMapFrameID, LAYOUT_ITEM_INFO_WIN)
+	Set Window nLayoutMID Title marrSiteNames(1) & " Map"
+
+	Add Map
+		Window nLayoutMID
+		Layer marrSiteTables(1)
+	Set Map
+		Window nLayoutMID
+		Zoom Entire Layer marrSiteTables(1)
+	Set Map
+		Window nLayoutMID
+		Zoom MapperInfo(nLayoutMID, MAPPER_INFO_ZOOM) * PSTYECGetZoomScale()
+
+	bThemeFound	= FALSE
+	nLayerID		= LAYERGetLayerNumber(nMID, PSYTECTable("psyte"))
+	If nLayerID > 0 Then
+		nThemeLayerID	= nLayerID - 1
+		If LayerInfo(nMID, nThemeLayerID, LAYER_INFO_TYPE) = LAYER_INFO_TYPE_THEMATIC Then
+			If THEMEGetIndividualItems(nMID, nThemeLayerID, marrThemeItems()) > 0 Then
+				bThemeFound = TRUE
+			End If
+		End If
+	End If
+
+	For nFrame = LayoutInfo(nLayoutID,LAYOUT_INFO_NUM_ITEMS) To 1 Step -1
+		sFrameName	= LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_NAME)
+		Do Case LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_TYPE)
+			Case LAYOUT_ITEM_TYPE_SHAPE
+				If Left$(sFrameName, Len("Graphbar")) = "Graphbar" Then	'Graphbar(Site1Top[1].hh_pct)
+					Call PSYTEUpdateGraphbar(nLayoutID, nFrame, sFrameName)
+				ElseIf Left$(sFrameName, Len("Graphcolumn")) = "Graphcolumn" Then	'Graphbar(Site1Top[1].hh_pct)
+					Call PSYTEUpdateGraphcolumn(nLayoutID, nFrame, sFrameName)
+				ElseIf Left$(sFrameName, Len("LegendStyle")) = "LegendStyle" Then	'LegendStyle(Site1Top[1])
+					If bThemeFound Then
+						Call PSYTEUpdateLegendStyle(nLayoutID, nFrame, sFrameName)
+					End If
+				End If
+		End Case
+	Next
+
+	'**Crystalizing SmartTexts as Texts
+	For nFrame = 1 To LayoutInfo(nLayoutID,LAYOUT_INFO_NUM_ITEMS)
+		If LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_TYPE) = LAYOUT_ITEM_TYPE_TEXT Then
+			sText	= LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_SMART_TEXTSTRING)
+			Alter Designer Text Window nLayoutID ID nFrame Text sText
+		End If
+	Next
+
+	Update Window nLayoutMID
+	Update Window nLayoutID
+
+	Redim marrSegmentTop(0)
+	Redim marrThemeItems(0)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELayoutNew")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTELayoutNewDualSites(	  ByVal nMID As Integer
+						, arrNames() As String
+						, arrSiteTables() As String
+						, ByVal sSegmentsTab As String
+						, ByVal sLayoutFile As String
+						)
+
+Dim	nNumTables, nTab, nLayoutID, nLayoutMID, nLayerID, nThemeLayerID As Integer,
+	nFrame, nMapFrameID, nTopNo As Integer,
+	sFrameName, sText As String,
+	bThemeFound As Logical
+
+OnError GoTo ErrorOccured
+
+	msSegmentTab		= sSegmentsTab
+	nNumTables		= Ubound(arrSiteTables)
+	Redim marrSiteTables(nNumTables)
+	Redim marrSiteNames(nNumTables)
+	For nTab = 1 To nNumTables
+		marrSiteTables(nTab)	= arrSiteTables(nTab)
+		marrSiteNames(nTab)		= arrNames(nTab)
+	Next
+
+	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
+	nLayoutID	= FrontWindow()
+
+	Set Window nLayoutID Title arrNames(1) & " vs " & arrNames(2)
+
+	nMapFrameID	= LayoutItemID(nLayoutID, "Map Site1", LAYOUT_ITEM_TYPE_EMPTY)
+
+	'--------------------------------------------
+	'** Adding the map to the layout
+	Set Designer Frame
+		Window nLayoutID
+		ID nMapFrameID
+		From Window nMID
+
+	nLayoutMID	= LayoutItemInfo(nLayoutID, nMapFrameID, LAYOUT_ITEM_INFO_WIN)
+	Set Window nLayoutMID Title arrNames(1) & " vs " & arrNames(2) & " Map"
+
+	Call TABClose("__CombinedSites")
+	Commit Table marrSiteTables(1)
+		As FILEWindowsTempFolder() & "__CombinedSites.tab"
+	Open Table FILEWindowsTempFolder() & "__CombinedSites.tab"
+	For nTab = 2 To nNumTables
+		Set Table __CombinedSites FastEdit On Undo Off
+		Insert Into __CombinedSites
+			Select * From marrSiteTables(nTab)
+		Commit Table __CombinedSites
+	Next
+
+	Add Map
+		Window nLayoutMID
+		Layer __CombinedSites
+	Set Map
+		Window nLayoutMID
+		Zoom Entire Layer __CombinedSites
+	Set Map
+		Window nLayoutMID
+		Zoom MapperInfo(nLayoutMID, MAPPER_INFO_ZOOM) * PSTYECGetZoomScale()
+
+	bThemeFound	= FALSE
+	nLayerID		= LAYERGetLayerNumber(nMID, PSYTECTable("psyte"))
+	If nLayerID > 0 Then
+		nThemeLayerID	= nLayerID - 1
+		If LayerInfo(nMID, nThemeLayerID, LAYER_INFO_TYPE) = LAYER_INFO_TYPE_THEMATIC Then
+			If THEMEGetIndividualItems(nMID, nThemeLayerID, marrThemeItems()) > 0 Then
+				bThemeFound = TRUE
+			End If
+		End If
+	End If
+
+	For nFrame = LayoutInfo(nLayoutID,LAYOUT_INFO_NUM_ITEMS) To 1 Step -1
+		sFrameName	= LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_NAME)
+		Do Case LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_TYPE)
+			Case LAYOUT_ITEM_TYPE_SHAPE
+				If Left$(sFrameName, Len("Graphbar")) = "Graphbar" Then	'Graphbar(Site1Top[1].hh_pct)
+					Call PSYTEUpdateGraphbar(nLayoutID, nFrame, sFrameName)
+				ElseIf Left$(sFrameName, Len("Graphcolumn")) = "Graphcolumn" Then	'Graphbar(Site1Top[1].hh_pct)
+					Call PSYTEUpdateGraphcolumn(nLayoutID, nFrame, sFrameName)
+				ElseIf Left$(sFrameName, Len("LegendStyle")) = "LegendStyle" Then	'LegendStyle(Site1Top[1])
+					If bThemeFound Then
+						Call PSYTEUpdateLegendStyle(nLayoutID, nFrame, sFrameName)
+					End If
+				End If
+		End Case
+	Next
+
+	'**Crystalizing SmartTexts as Texts
+	For nFrame = 1 To LayoutInfo(nLayoutID,LAYOUT_INFO_NUM_ITEMS)
+		If LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_TYPE) = LAYOUT_ITEM_TYPE_TEXT Then
+			sText	= LayoutItemInfo(nLayoutID, nFrame, LAYOUT_ITEM_INFO_SMART_TEXTSTRING)
+			Alter Designer Text Window nLayoutID ID nFrame Text sText
+		End If
+	Next
+
+	Update Window nLayoutMID
+	Update Window nLayoutID
+
+	Call TABClose("__CombinedSites")
+
+	Redim marrSegmentTop(0)
+	Redim marrThemeItems(0)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELayoutNewDualSites")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTEUpdateGraphbar(	  ByVal nLayoutID As Integer
+					, ByVal nFrameID As Integer
+					, ByVal sFrameName As String		'Graphbar(Site1Top[1].hh_pct)
+					)
+
+Dim	sExpr, sSite, sCol, sPct As String,
+	nTopNo, nPos As Integer,
+	fPct, fWidth, fWidthNew As Float
+
+OnError GoTo ErrorOccured
+
+	'Extracting full expression: Site1Top[1].hh_pct
+	sExpr	= STRINGGetValueBetweenChars(sFrameName, "(", ")")
+	'Extracting Top No
+	nTopNo	= STRINGGetValueBetweenChars(sExpr, "[", "]")
+
+	nPos 	= InStr(1, sExpr, ".")
+	'Extracting Col: hh_pct or pop_pct
+	sCol		= Mid$(sExpr, nPos + 1, Len(sExpr))
+
+	nPos 	= InStr(1, sExpr, "[")
+	'Extracting Site: Site1Top or Site2Top ...
+	sSite	= Left$(sExpr, nPos - 1)
+
+'	Call DEBUGPrint("PSYTEUpdateGraphbar: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "' Column='" & sCol & "'")
+
+	sPct		= PSYTELGetTopExt(sSite, nTopNo, sCol)
+'	Call DEBUGPrint(sCol & " --> " & sPct)
+	fPct 	= Val(DeformatNumber$(sPct))
+
+	Set Paper Units "cm"
+	fWidth	= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_WIDTH)
+	fWidthNew	= (fWidth / 100) * fPct
+
+'	Call DEBUGPrint("Width " & FormatNumber$(fWidth) & " --> " & FormatNumber$(fWidthNew) & " for " & FormatNumber$(fPct) & "%")
+
+	If fWidthNew > 0 Then
+		Alter Designer Frame
+			Window nLayoutID
+			Id nFrameID
+			Width fWidthNew Units "cm"
+	Else
+		Remove Designer Frame
+			Window nLayoutID
+			Id nFrameID
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTEUpdateGraphbar")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTEUpdateGraphcolumn(	  ByVal nLayoutID As Integer
+						, ByVal nFrameID As Integer
+						, ByVal sFrameName As String		'Graphbar(Site1Top[1].hh_pct)
+						)
+
+Dim	sExpr, sSite, sCol, sPct As String,
+	nTopNo, nPos As Integer,
+	fPct, fHeight, fHeightNew As Float
+
+OnError GoTo ErrorOccured
+
+	'Extracting full expression: Site1Top[1].hh_pct
+	sExpr	= STRINGGetValueBetweenChars(sFrameName, "(", ")")
+	'Extracting Top No
+	nTopNo	= STRINGGetValueBetweenChars(sExpr, "[", "]")
+
+	nPos 	= InStr(1, sExpr, ".")
+	'Extracting Col: hh_pct or pop_pct
+	sCol		= Mid$(sExpr, nPos + 1, Len(sExpr))
+
+	nPos 	= InStr(1, sExpr, "[")
+	'Extracting Site: Site1Top or Site2Top ...
+	sSite	= Left$(sExpr, nPos - 1)
+
+'	Call DEBUGPrint("PSYTEUpdateGraphcolumn: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "' Column='" & sCol & "'")
+
+	sPct		= PSYTELGetTopExt(sSite, nTopNo, sCol)
+'	Call DEBUGPrint(sCol & " --> " & sPct)
+	fPct 	= Val(DeformatNumber$(sPct))
+
+	Set Paper Units "cm"
+	fHeight		= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_HEIGHT)
+	fHeightNew	= (fHeight / 100) * fPct
+
+'	Call DEBUGPrint("Height " & FormatNumber$(fHeight) & " --> " & FormatNumber$(fHeightNew) & " for " & FormatNumber$(fPct) & "%")
+
+	If fHeightNew > 0 Then
+		Alter Designer Frame
+			Window nLayoutID
+			Id nFrameID
+			Height fHeightNew Units "cm"
+	Else
+		Remove Designer Frame
+			Window nLayoutID
+			Id nFrameID
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTEUpdateGraphcolumn")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTEUpdateLegendStyle(	  ByVal nLayoutID As Integer
+						, ByVal nFrameID As Integer
+						, ByVal sFrameName As String		'LegendStyle(Site1Top[1])
+						)
+
+Dim	sExpr, sSite, sValue As String,
+	nTopNo, nPos, nItem, nPriority As Integer,
+	fX, fY, fHeight, fWidth As Float,
+	bFound As Logical,
+	brsNew As Brush,
+	penNew As Pen,
+	oFrame As Object
+
+OnError GoTo ErrorOccured
+
+	If Ubound(marrThemeItems) = 0 Then
+		Exit Sub
+	End If
+
+	'Extracting full expression: Site1Top[1]
+	sExpr	= STRINGGetValueBetweenChars(sFrameName, "(", ")")
+	'Extracting Top No
+	nTopNo	= STRINGGetValueBetweenChars(sExpr, "[", "]")
+
+	nPos 	= InStr(1, sExpr, "[")
+	'Extracting Site: Site1Top or Site2Top ...
+	sSite	= Left$(sExpr, nPos - 1)
+
+'	Call DEBUGPrint("PSYTEUpdateLegendStyle: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "'")
+
+	If marrThemeItems(1).sExpr = "psyte_seg" Then
+		sValue	= PSYTELGetTopExt(sSite, nTopNo, "psyte_seg")
+	ElseIf marrThemeItems(1).sExpr Or "seg_label" Then
+		sValue	= PSYTELGetTopExt(sSite, nTopNo, "seg_label")
+	End If
+
+	If Not sValue = "" Then
+		For nItem = 1 To Ubound(marrThemeItems)
+			If marrThemeItems(nItem).sValue = sValue Then
+'				Call DEBUGPrint("Thematic Value Found: " & sValue)
+				brsNew	= marrThemeItems(nItem).brsFill
+				penNew	= marrThemeItems(nItem).penBorder
+				bFound 	= TRUE
+				Exit For
+			End If
+		Next
+
+		If bFound Then
+'			Alter Designer Frame
+'				Window nLayoutID
+'				Id nFrameID
+'				Style Region penNew brsNew
+
+			Set Coordsys Layout Units "cm"
+			Set Paper Units "cm"
+			fHeight	= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_HEIGHT)
+			fWidth	= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_WIDTH)
+			fX		= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_POS_X)
+			fY		= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_POS_Y)
+			nPriority	= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_Z_ORDER)
+			oFrame	= LayoutItemInfo(nLayoutID, nFrameID, LAYOUT_ITEM_INFO_OBJ)
+
+			Remove Designer Frame
+				Window nLayoutID
+				Id nFrameID
+
+			Do Case ObjectInfo(oFrame, OBJ_INFO_TYPE)
+				Case OBJ_TYPE_ELLIPSE
+					Create Ellipse
+						Into Window nLayoutID
+						(fX, fY) ( fX + fWidth, fY + fHeight)
+						Pen penNew Brush brsNew
+						Priority nPriority
+						Name "Changed " & sFrameName
+				Case OBJ_TYPE_ROUNDRECT
+					Create RoundRect
+						Into Window nLayoutID
+						(fX, fY) ( fX + fWidth, fY + fHeight) ObjectGeography(oFrame, OBJ_GEO_ROUNDRADIUS)
+						Pen penNew Brush brsNew
+						Priority nPriority
+						Name "Changed " & sFrameName
+				Case Else
+					Create Rect
+						Into Window nLayoutID
+						(fX, fY) ( fX + fWidth, fY + fHeight)
+						Pen penNew Brush brsNew
+						Priority nPriority
+						Name "Changed " & sFrameName
+			End Case
+		End If
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTEUpdateLegendStyle")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTop(	  ByVal nTop As Integer
+					, ByVal sColumn As String
+					) As String
+
+	PSYTELGetTop = PSYTELGetTopExt("Site1", nTop, sColumn)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELGetTop")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTopExt(  ByVal sSite As String
+					, ByVal nTop As Integer
+					, ByVal sColumn As String
+					) As String
+
+Dim	nItem As Integer,
+	sVal As String
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTopExt = ""
+
+'	Print "PSYTELGetTopExt: " & sSite & " " & nTop & " " & sColumn
+
+	If Ubound(marrSegmentTop) = 0 Then
+		If TABIsOpen(msSegmentTab) Then
+			Select *
+				From msSegmentTab
+				Order By PSYTECGetProportionColumn(1) & "_pct" Desc
+				Into __Top__Segments NoSelect Hide
+
+			Fetch First From __Top__Segments
+			Do Until EOT(__Top__Segments)
+				nItem = nItem + 1
+				ReDim marrSegmentTop(nItem)
+				marrSegmentTop(nItem).sSegm			= __Top__Segments.psyte_seg
+				marrSegmentTop(nItem).sLabel			= __Top__Segments.seg_label
+				marrSegmentTop(nItem).nHouseholdCount	= __Top__Segments.households
+				marrSegmentTop(nItem).nPopulationCount	= __Top__Segments.population
+				marrSegmentTop(nItem).fHouseholdPct	= __Top__Segments.households_pct
+				marrSegmentTop(nItem).fPopulationPct	= __Top__Segments.population_pct
+
+				If COLExists("__Top__Segments", "households_2") Then
+					marrSegmentTop(nItem).nHouseholdCount2	= __Top__Segments.households_2
+					marrSegmentTop(nItem).nPopulationCount2	= __Top__Segments.population_2
+					marrSegmentTop(nItem).fHouseholdPct2	= __Top__Segments.households_pct_2
+					marrSegmentTop(nItem).fPopulationPct2	= __Top__Segments.population_pct_2
+				End If
+
+				If COLExists("__Top__Segments", "households_BM") Then
+					marrSegmentTop(nItem).nHouseholdCountBM		= __Top__Segments.households_BM
+					marrSegmentTop(nItem).nPopulationCountBM	= __Top__Segments.population_BM
+					marrSegmentTop(nItem).fHouseholdPctBM		= __Top__Segments.households_pct_BM
+					marrSegmentTop(nItem).fPopulationPctBM		= __Top__Segments.population_pct_BM
+				End If
+
+'				Call DEBUGPrint(nItem & ": " & marrSegmentTop(nItem).sSegm & " " & marrSegmentTop(nItem).sLabel & " " & marrSegmentTop(nItem).fHouseholdPct)				Fetch Next From __Top__Segments
+				Fetch Next From __Top__Segments
+			Loop
+			Close Table __Top__Segments
+		End If
+	End If
+
+	If nTop > Ubound(marrSegmentTop) Then
+'		CAll DEBUGPrint("No Top Values stored!")
+		Exit Function
+	End If
+
+	Do Case sColumn
+		Case "psyte_seg", "seg_code"
+			sVal = marrSegmentTop(nTop).sSegm
+		Case "seg_label"
+			sVal = marrSegmentTop(nTop).sLabel
+		Case "households", "hh"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = marrSegmentTop(nTop).nHouseholdCount
+				Case "Site2", "2", "Site2Top"
+					sVal = marrSegmentTop(nTop).nHouseholdCount2
+				Case "Benchmark", "Reference", "BM", "BMTop"
+					sVal = marrSegmentTop(nTop).nHouseholdCountBM
+			End Case
+		Case "population", "pop"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = marrSegmentTop(nTop).nPopulationCount
+				Case "Site2", "2", "Site2Top"
+					sVal = marrSegmentTop(nTop).nPopulationCount2
+				Case "Benchmark", "Reference", "BM", "BMTop"
+					sVal = marrSegmentTop(nTop).nPopulationCountBM
+			End Case
+		Case "households_pct", "hh_pct"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPct)
+				Case "Site2", "2", "Site2Top"
+					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPct2)
+				Case "Benchmark", "Reference", "BM", "BMTop"
+					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPctBM)
+			End Case
+		Case "population_pct", "pop_pct"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPct)
+				Case "Site2", "2", "Site2Top"
+					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPct2)
+				Case "Benchmark", "Reference", "BM", "BMTop"
+					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPctBM)
+			End Case
+	End Case
+
+'	Print "   PSYTELGetTopExt: " & sSite & " " & nTop & " " & sColumn & " --> " & sVal
+	PSYTELGetTopExt	= sVal
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELGetTopExt")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'**********************************************************************************************''
+'Functions to get values from columns in tables
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetSiteName(  ByVal nSite As Integer
+						) As String
+
+OnError GoTo ErrorOccured
+
+PSYTELGetSiteName	= ""
+'	Print "PSYTELGetSiteName: " & nSite
+	Do Case nSite
+		Case 1
+			PSYTELGetSiteName	= marrSiteNames(1)
+		Case 2
+			PSYTELGetSiteName	= marrSiteNames(2)
+	End Case
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetSiteName: Site: " & nSite
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetSiteColumnValue(  ByVal sCol As String
+							) As String
+
+OnError GoTo ErrorOccured
+
+'	Print "PSYTELGetSiteColumnValue: Column: " & sCol
+	PSYTELGetSiteColumnValue	= PSYTELGetColumnValue(sCol, 1, FALSE)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetSiteColumnValue: Column: " & sCol
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetSiteColumnValueErr(  ByVal sCol As String
+							) As String
+
+OnError GoTo ErrorOccured
+
+	PSYTELGetSiteColumnValueErr	= PSYTELGetColumnValue(sCol, 1, TRUE)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetSiteColumnValueErr: Column: " & sCol
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetColumnValue(  ByVal sCol As String
+						, ByVal nRowID As Integer
+						, ByVal bReturnError As Logical
+						) As String
+
+Dim	sTab As String
+
+OnError GoTo ErrorOccured
+
+'	Print "PSYTELGetColumnValue: Column: " & sCol & " RowID: " & nRowID
+	sTab 				= marrSiteTables(1)
+'	Print "PSYTELGetColumnValue: Table: " & sTab
+	PSYTELGetColumnValue	= PSYTELGetTableColumnValue(sTab, sCol, nRowID, bReturnError)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetColumnValue: Table " & sTab & " Column: " & sCol & " RowID: " & nRowID
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTableColumnValue(  ByVal sTab As String
+							, ByVal sCol As String
+							, ByVal nRowID As Integer
+							, ByVal bReturnError As Logical
+							) As String
+
+Dim	sValue As String,
+	aCol As Alias,
+	bCloseTable As Logical
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTableColumnValue = ""
+
+	If sTab = "" Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "Error: Table Name has not been specified"
+		End If
+		Exit Function
+	End If
+	If NumTables() = 0 Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "Error: No tables open"
+		End If
+		Exit Function
+	End If
+
+	If sTab = "Selection" Then
+		If SelectionInfo(SEL_INFO_NROWS) > 0 Then
+			sTab		= SelectionInfo(SEL_INFO_SELNAME)
+			bCloseTable	= TRUE
+		Else
+			If bReturnError Then
+				PSYTELGetTableColumnValue = "Error: Selection holds no records"
+			End If
+			Exit Function
+		End If
+	End If
+
+	If NOT TABIsOpen(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "Error: Table isn't open '" & sTab & "'"
+		End If
+		Exit Function
+	ElseIf NOT COLExists(sTab, sCol) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "Error: Table '" & sTab & "' hasn't this column '" & sCol & "'"
+		End If
+		Exit Function
+	ElseIf nRowID > TableInfo(sTab, TAB_INFO_NROWS) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "Error: RowID '" & FormatNumber$(nRowID) & "' is higher than number of records '" & FormatNumber$(TableInfo(sTab, TAB_INFO_NROWS)) & "'"
+		End If
+		Exit Function
+	End If
+
+	If nRowID > 0 Then
+		Fetch Rec nRowID From sTab
+	ElseIf EOT(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValue = "The cursor of the table '" & sTab & "' is at EOT"
+		End If
+		Exit Function
+	End If
+
+	aCol = sTab & "." & sCol
+
+	Do Case ColumnInfo(sTab, sCol, COL_INFO_TYPE)
+		Case COL_TYPE_CHAR
+			sValue = aCol
+		Case COL_TYPE_INTEGER, COL_TYPE_SMALLINT, COL_TYPE_LOGICAL, COL_TYPE_LARGEINT
+			sValue = Str$(aCol)
+		Case COL_TYPE_FLOAT, COL_TYPE_DECIMAL
+			sValue = FormatNumber$(aCol)
+		Case COL_TYPE_DATE
+			If aCol Then
+				sValue = FormatDate$(aCol)
+			End If
+		Case COL_TYPE_TIME
+			If aCol Then
+				sValue = FormatTime$(acol, "HH:mm:ss")
+			End If
+		Case COL_TYPE_DATETIME
+			If aCol Then
+				sValue = FormatDate$(aCol) & " " & FormatTime$(GetTime(acol), "HH:mm:ss")
+			End If
+	End Case
+
+	If bCloseTable Then
+		'Close Table sTab
+	End If
+	PSYTELGetTableColumnValue = sValue
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetTableColumnValue: Table " & sTab & " Column: " & sCol & " RowID: " & nRowID
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTableColumnNames(  ByVal sTab As String
+							, ByVal sSeparator As String		'Defaults to Chr$(10) if ""
+							, ByVal bReturnError As Logical
+							) As String
+
+Dim	sValues, sCol As String,
+	nCol As Integer,
+	bCloseTable As Logical
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTableColumnNames = ""
+
+	If sTab = "" Then
+		If bReturnError Then
+			PSYTELGetTableColumnNames = "Error: Table Name has not been specified"
+		End If
+		Exit Function
+	End If
+	If NumTables() = 0 Then
+		If bReturnError Then
+			PSYTELGetTableColumnNames = "Error: No tables open"
+		End If
+		Exit Function
+	End If
+
+	sSeparator 		= IIf(sSeparator = "", Chr$(10), sSeparator)
+
+	If sTab = "Selection" Then
+		If SelectionInfo(SEL_INFO_NROWS) > 0 Then
+			sTab		= SelectionInfo(SEL_INFO_SELNAME)
+			bCloseTable	= TRUE
+		Else
+			If bReturnError Then
+				PSYTELGetTableColumnNames = "Error: Selection holds no records"
+			End If
+			Exit Function
+		End If
+	End If
+	If NOT TABIsOpen(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnNames = "Error: Table isn't open '" & sTab & "'"
+		End If
+		Exit Function
+	End If
+
+	For nCol = 1 To TableInfo(sTab, TAB_INFO_NCOLS)
+		sCol	= ColumnInfo(sTab, "COL" + nCol, COL_INFO_NAME)
+
+		If sValues = "" Then
+			sValues = sCol & ":"
+		Else
+			sValues = sValues & sSeparator & sCol & ":"
+		End If
+	Next
+
+	If bCloseTable Then
+		'Close Table sTab
+	End If
+	PSYTELGetTableColumnNames = sValues
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetTableColumnNames: Table " & sTab
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTableColumnValues( ByVal sTab As String
+							, ByVal sCol As String
+							, ByVal sSeparator As String		'Defaults to Chr$(10) if ""
+							, ByVal bReturnError As Logical
+							) As String
+
+Dim	sValues, sValue As String,
+	aCol As Alias,
+	bCloseTable As Logical
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTableColumnValues = ""
+
+	If sTab = "" Then
+		If bReturnError Then
+			PSYTELGetTableColumnValues = "Error: Table Name has not been specified"
+		End If
+		Exit Function
+	End If
+	If NumTables() = 0 Then
+		If bReturnError Then
+			PSYTELGetTableColumnValues = "Error: No tables open"
+		End If
+		Exit Function
+	End If
+
+	sSeparator 		= IIf(sSeparator = "", Chr$(10), sSeparator)
+
+	If sTab = "Selection" Then
+		If SelectionInfo(SEL_INFO_NROWS) > 0 Then
+			sTab			= SelectionInfo(SEL_INFO_SELNAME)
+			bCloseTable	= TRUE
+		Else
+			If bReturnError Then
+				PSYTELGetTableColumnValues = "Error: Selection holds no records"
+			End If
+			Exit Function
+		End If
+	End If
+
+	If NOT TABIsOpen(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValues = "Error: Table isn't open '" & sTab & "'"
+		End If
+		Exit Function
+	ElseIf NOT COLExists(sTab, sCol) Then
+		If bReturnError Then
+			PSYTELGetTableColumnValues = "Error: Table '" & sTab & "' hasn't this column '" & sCol & "'"
+		End If
+		Exit Function
+	End If
+
+	aCol = sTab & "." & sCol
+	Fetch First from sTab
+	Do Until EOT(sTab)
+		Do Case ColumnInfo(sTab, sCol, COL_INFO_TYPE)
+			Case COL_TYPE_CHAR
+				sValue = aCol
+			Case COL_TYPE_INTEGER, COL_TYPE_SMALLINT, COL_TYPE_LOGICAL, COL_TYPE_LARGEINT
+				sValue = Str$(aCol)
+			Case COL_TYPE_FLOAT, COL_TYPE_DECIMAL
+				sValue = FormatNumber$(aCol)
+			Case COL_TYPE_DATE
+				If aCol Then
+					sValue = FormatDate$(aCol)
+				End If
+			Case COL_TYPE_TIME
+				If aCol Then
+					sValue = FormatTime$(acol, "HH:mm:ss")
+				End If
+			Case COL_TYPE_DATETIME
+				If aCol Then
+					sValue = FormatDate$(aCol) & " " & FormatTime$(GetTime(acol), "HH:mm:ss")
+				End If
+		End Case
+
+		If sValues = "" Then
+			sValues = sValue
+		Else
+			sValues = sValues & sSeparator & sValue
+		End If
+		Fetch Next From sTab
+	Loop
+
+	If bCloseTable Then
+		'Close Table sTab
+	End If
+	PSYTELGetTableColumnValues = sValues
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetTableColumnValues: Table " & sTab & " RowID: " & nRowID
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTableRowValues(	  ByVal sTab As String
+							, ByVal nRowID As Integer
+							, ByVal sSeparator As String		'Defaults to Chr$(10) if ""
+							, ByVal bReturnError As Logical
+							) As String
+
+Dim	sValues, sCol As String,
+	nCol As Integer,
+	bCloseTable As Logical
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTableRowValues = ""
+
+	If sTab = "" Then
+		If bReturnError Then
+			PSYTELGetTableRowValues = "Error: Table Name has not been specified"
+		End If
+		Exit Function
+	End If
+	If NumTables() = 0 Then
+		If bReturnError Then
+			PSYTELGetTableRowValues = "Error: No tables open"
+		End If
+		Exit Function
+	End If
+
+	sSeparator 		= IIf(sSeparator = "", Chr$(10), sSeparator)
+
+	If sTab = "Selection" Then
+		If SelectionInfo(SEL_INFO_NROWS) > 0 Then
+			sTab		= SelectionInfo(SEL_INFO_SELNAME)
+			bCloseTable	= TRUE
+		Else
+			If bReturnError Then
+				PSYTELGetTableRowValues = "Error: Selection holds no records"
+			End If
+			Exit Function
+		End If
+	End If
+	If NOT TABIsOpen(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableRowValues = "Error: Table isn't open '" & sTab & "'"
+		End If
+		Exit Function
+	ElseIf nRowID > TableInfo(sTab, TAB_INFO_NROWS) Then
+		If bReturnError Then
+			PSYTELGetTableRowValues = "Error: RowID '" & FormatNumber$(nRowID) & "' is higher than number of records '" & FormatNumber$(TableInfo(sTab, TAB_INFO_NROWS)) & "'"
+		End If
+		Exit Function
+	End If
+
+	If nRowID > 0 Then
+		Fetch Rec nRowID From sTab
+	ElseIf EOT(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableRowValues = "The cursor of the table '" & sTab & "' is at EOT"
+		End If
+		Exit Function
+	End If
+
+	For nCol = 1 To TableInfo(sTab, TAB_INFO_NCOLS)
+		sCol	= ColumnInfo(sTab, "COL" + nCol, COL_INFO_NAME)
+
+		If sValues = "" Then
+			sValues = PSYTELGetTableColumnValue(sTab, sCol, nRowID, bReturnError)
+		Else
+			sValues = sValues & sSeparator & PSYTELGetTableColumnValue(sTab, sCol, nRowID, bReturnError)
+		End If
+	Next
+
+	If bCloseTable Then
+		'Close Table sTab
+	End If
+	PSYTELGetTableRowValues = sValues
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetTableRowValues: Table " & sTab & " RowID: " & nRowID
+
+End Function
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetTableColumnNameValues(  ByVal sTab As String
+								, ByVal nRowID As Integer
+								, ByVal sColumnSeparator As String		'Defaults to Chr$(10) if ""
+								, ByVal sRowSeparator As String		'Defaults to Chr$(9) if ""
+								, ByVal bReturnError As Logical
+								) As String
+
+Dim	sValues, sCol As String,
+	nCol As Integer,
+	bCloseTable As Logical
+
+OnError GoTo ErrorOccured
+
+PSYTELGetTableColumnNameValues = ""
+
+	If sTab = "" Then
+		If bReturnError Then
+			PSYTELGetTableColumnNameValues = "Error: Table Name has not been specified"
+		End If
+		Exit Function
+	End If
+	If NumTables() = 0 Then
+		If bReturnError Then
+			PSYTELGetTableColumnNameValues = "Error: No tables open"
+		End If
+		Exit Function
+	End If
+
+	sRowSeparator 		= IIf(sRowSeparator = "", Chr$(9), sRowSeparator)
+	sColumnSeparator	= IIf(sColumnSeparator = "", Chr$(10), sColumnSeparator)
+
+	If sTab = "Selection" Then
+		If SelectionInfo(SEL_INFO_NROWS) > 0 Then
+			sTab		= SelectionInfo(SEL_INFO_SELNAME)
+			bCloseTable	= TRUE
+		Else
+			If bReturnError Then
+				PSYTELGetTableColumnNameValues = "Error: Selection holds no records"
+			End If
+			Exit Function
+		End If
+	End If
+	If NOT TABIsOpen(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnNameValues = "Error: Table isn't open '" & sTab & "'"
+		End If
+		Exit Function
+	ElseIf nRowID > TableInfo(sTab, TAB_INFO_NROWS) Then
+		If bReturnError Then
+			PSYTELGetTableColumnNameValues = "Error: RowID '" & FormatNumber$(nRowID) & "' is higher than number of records '" & FormatNumber$(TableInfo(sTab, TAB_INFO_NROWS)) & "'"
+		End If
+		Exit Function
+	End If
+
+	If nRowID > 0 Then
+		Fetch Rec nRowID From sTab
+	ElseIf EOT(sTab) Then
+		If bReturnError Then
+			PSYTELGetTableColumnNameValues = "The cursor of the table '" & sTab & "' is at EOT"
+		End If
+		Exit Function
+	End If
+
+	For nCol = 1 To TableInfo(sTab, TAB_INFO_NCOLS)
+		sCol	= ColumnInfo(sTab, "COL" + nCol, COL_INFO_NAME)
+
+		If sValues = "" Then
+			sValues = sCol & ":" & sRowSeparator & PSYTELGetTableColumnValue(sTab, sCol, nRowID, bReturnError)
+		Else
+			sValues = sValues & sColumnSeparator & sCol & ":" & sRowSeparator & PSYTELGetTableColumnValue(sTab, sCol, nRowID, bReturnError)
+		End If
+	Next
+
+	If bCloseTable Then
+		'Close Table sTab
+	End If
+	PSYTELGetTableColumnNameValues = sValues
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetTableColumnNameValues: Table " & sTab & " RowID: " & nRowID
+
+End Function

@@ -1,0 +1,295 @@
+﻿'*******************************************************************************
+'** 	Created By Peter Horsbøll Møller, Precisely
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+
+'-------------------------------------
+Include "Library\ARRAYLib.def"
+Include "Library\COLUMNLib.def"
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\TABLELib.def"
+
+Define	CTRL_LST_NAME_COLUMN		100
+Define	CTRL_LST_LAYOUT_TEMPLATES	200
+Define	CTRL_CHK_ADD_BENCHMARK		300
+Define	CTRL_LST_BENCHMARK_TYPES		310
+
+Include "PSYTEConfig.def"
+Include "PSYTECreateSingleAnalysisDlg.def"
+
+Declare Sub PSYTECSADHandlerOnDialogLoad
+Declare Sub PSYTECSADHandlerOKClicked
+Declare Sub PSYTECSADHandlerAddBenchmarkClicked
+
+
+Dim	msNameColumn, msLayoutTemplateFile, msBenchmarkType As String,
+	marrColumnNames(), marrLayoutTemplates() As String,
+	mbAddBenchmark As Logical,
+	mnRows As Integer
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECreateSingleAnalysisDlg(	  Byval sQuery As String
+										) As Logical
+
+
+OnError GoTo ErrorOccured
+
+PSYTECreateSingleAnalysisDlg = FALSE
+
+	mbAddBenchmark	= FALSE
+	mnRows		= TableInfo(sQuery, TAB_INFO_NROWS)
+	ReDim marrColumnNames(0)
+	If COLGetListOfNames(sQuery, CRITERIA_USE_CHAR, marrColumnNames()) = 0 Then
+		Note "Please select a potential site from a table with at least one char column!"
+		Exit Function
+	End If
+
+	Dialog
+		Title "Create Single Site Analysis"
+		Calling PSYTECSADHandlerOnDialogLoad
+
+		Control StaticText	Position 5,5
+			Title "Input: " & sQuery
+		Control StaticText	Position 5,15
+			Title "Records: " & FormatNumber$(mnRows)
+
+		Control StaticText	Position 5,30
+			Title "Name Column:"
+		Control PopupMenu	Position 5,40		ID CTRL_LST_NAME_COLUMN
+			Title From Variable marrColumnNames
+			Width 250
+
+		Control StaticText	Position 5,60
+			Title "Use Layout Template:"
+		Control PopupMenu	Position 5,70		ID CTRL_LST_LAYOUT_TEMPLATES
+			Title From Variable marrLayoutTemplates
+			Width 250
+
+		Control CheckBox	Position 5,90		ID CTRL_CHK_ADD_BENCHMARK
+			Title "Add Benchmark to Output:"
+			Value PSYTECSADAddBenchmark()
+			Calling PSYTECSADHandlerAddBenchmarkClicked
+			Disable
+		Control PopupMenu	Position 5,100		ID CTRL_LST_BENCHMARK_TYPES
+			Title From Variable marrLayoutTemplates
+			Width 250
+'			Disable
+
+		Control OKButton
+			Calling PSYTECSADHandlerOKClicked
+		Control CancelButton
+
+	If not CommandInfo(CMD_INFO_DLG_OK) Then
+		Exit Function
+	End If
+
+PSYTECreateSingleAnalysisDlg = TRUE
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECreateSingleAnalysisDlg")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECSADHandlerOnDialogLoad
+
+Dim	nItem As Integer
+
+OnError GoTo ErrorOccured
+
+	If PSYTECSADGetNameColumn() <> "" Then
+		nItem = ARRAYFindValueString(marrColumnNames, PSYTECSADGetNameColumn())
+	End If
+	Alter Control CTRL_LST_NAME_COLUMN	Value IIf(nItem = 0, 1, nItem)
+
+	Call PSYTECSADHandlerAddBenchmarkClicked
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADHandlerOnDialogLoad")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECSADHandlerOKClicked
+
+Dim	nCtrl As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrl = ReadControlValue(CTRL_LST_NAME_COLUMN)
+	If nCtrl = 0 Then
+		Note "Please select a column holding the name of the sites!"
+		Dialog Preserve
+		Exit Sub
+	End If
+	msNameColumn	= marrColumnNames(nCtrl)
+
+	nCtrl = ReadControlValue(CTRL_LST_LAYOUT_TEMPLATES)
+	If nCtrl = 0 Then
+		Note "Please select a layout template to use for the analysis result!"
+		Dialog Preserve
+		Exit Sub
+	End If
+
+	mbAddBenchmark	= ReadControlValue(CTRL_CHK_ADD_BENCHMARK)
+	If mbAddBenchmark Then
+		msLayoutTemplateFile	= PSYTECGetLayoutFile("SingleSiteWithBenchmark", nCtrl)
+
+		nCtrl = ReadControlValue(CTRL_LST_BENCHMARK_TYPES)
+		If nCtrl = 0 Then
+			Note "Please select a benchmark type to add to the analysis result!"
+			Dialog Preserve
+			Exit Sub
+		End If
+	Else
+		msLayoutTemplateFile	= PSYTECGetLayoutFile("SingleSiteWithoutBenchmark", nCtrl)
+	End If
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADHandlerOKClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECSADHandlerAddBenchmarkClicked
+
+Dim	sType As String
+
+OnError GoTo ErrorOccured
+
+	If ReadControlValue(CTRL_CHK_ADD_BENCHMARK) Then
+		Alter Control CTRL_LST_BENCHMARK_TYPES	Enable
+		sType	= "SingleSiteWithBenchmark"
+	Else
+		Alter Control CTRL_LST_BENCHMARK_TYPES	Disable
+		sType	= "SingleSiteWithoutBenchmark"
+	End If
+
+	ReDim marrLayoutTemplates(0)
+	If PSYTECGetLayoutNames( sType, marrLayoutTemplates) Then
+
+	End If
+	Alter Control CTRL_LST_LAYOUT_TEMPLATES	Title From Variable marrLayoutTemplates
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADHandlerAddBenchmarkClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSADGetNameColumn() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSADGetNameColumn = msNameColumn
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADGetNameColumn")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSADGetLayoutTemplateFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSADGetLayoutTemplateFile = msLayoutTemplateFile
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADGetLayoutTemplateFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSADAddBenchmark() As Logical
+
+OnError GoTo ErrorOccured
+
+	PSYTECSADAddBenchmark = mbAddBenchmark
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADAddBenchmark")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSADGetBenchmarkType() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSADGetBenchmarkType = msBenchmarkType
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADGetBenchmarkType")
+	Call ERRShow()
+
+End Function

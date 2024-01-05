@@ -1,0 +1,33 @@
+﻿Declare Function PSYTECTable(ByVal sType As String) As String
+
+Declare Function PSYTECBenchmarkTxtFile() As String
+Declare Function PSYTECBenchmarkTabFile() As String
+Declare Function PSYTECBenchmarkTable() As String
+Declare Function PSYTECSegmentLabelsTabFile() As String
+Declare Function PSYTECSegmentLabelsTxtFile() As String
+Declare Function PSYTECSegmentLabelsTable() As String
+
+Declare Sub PSYTECSetDataDirectory(ByVal sValue As String)
+Declare Function PSYTECGetDataDirectory() As String
+Declare Sub PSYTECSetDataTabFile(ByVal sValue As String)
+Declare Function PSYTECGetDataTabFile() As String
+
+Declare Function PSYTECNumProportionColumns() As Integer
+Declare Function PSYTECGetProportionColumn(ByVal nCol As Integer) As String
+
+Declare Function PSYTECNumGroupColumns() As Integer
+Declare Function PSYTECGetGroupColumn(ByVal nCol As Integer) As String
+
+Declare Function PSYTECNumSegmentColumns() As Integer
+Declare Function PSYTECGetSegmentColumn(ByVal nCol As Integer) As String
+
+Declare Function PSYTECGetLayoutFiles( ByVal sType As String, arrFiles() As String) As Integer
+Declare Function PSYTECGetLayoutNames( ByVal sType As String, arrFiles() As String) As Integer
+Declare Function PSYTECGetLayoutFile( ByVal sType As String, ByVal nLayout As Integer) As String
+
+Declare Function PSTYECGetZoomScale() As Float
+Declare Sub PSTYECSetZoomScale(ByVal fScale As Float)
+
+Declare Sub PSYTECReadConfigFile
+Declare Sub PSYTECWriteConfigFile
+Declare Sub PSYTECSetConfigFile( ByVal sFile As String)

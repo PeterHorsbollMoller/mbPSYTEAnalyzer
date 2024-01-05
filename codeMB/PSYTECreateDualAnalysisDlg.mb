@@ -1,0 +1,415 @@
+﻿'*******************************************************************************
+'** 	Created By Peter Horsbøll Møller, Precisely
+'** 	Program:
+'** 	Modul:
+'**
+'*******************************************************************************
+
+'-------------------------------------
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Menu.def"
+'**default constants...
+Include "Library\Defaults.def"
+
+'-------------------------------------
+Include "Library\ARRAYLib.def"
+Include "Library\COLUMNLib.def"
+Include "Library\DEBUGLib.def"
+Include "Library\ERRORLib.def"
+Include "Library\TABLELib.def"
+
+Define	CTRL_LST_NAME_COLUMN		100
+Define	CTRL_LST_LAYOUT_TEMPLATES	200
+Define	CTRL_CHK_ADD_BENCHMARK		300
+Define	CTRL_LST_BENCHMARK_TYPES		310
+Define	CTRL_LST_NAMES_SITE1		400
+Define	CTRL_LST_NAMES_SITE2		410
+
+Include "PSYTEConfig.def"
+Include "PSYTECreateDualAnalysisDlg.def"
+
+Declare Sub PSYTECDADHandlerOnDialogLoad
+Declare Sub PSYTECDADHandlerOKClicked
+Declare Sub PSYTECDADHandlerAddBenchmarkClicked
+Declare Sub PSYTECDADHandlerNameColumnClicked
+Declare Sub PSYTECDADHandlerSite1NamesClicked
+
+
+Dim	msQuery, msNameColumn, msLayoutTemplateFile, msBenchmarkType As String,
+	marrColumnNames(), marrLayoutTemplates(), marrSiteNames(2) As String,
+	mbAddBenchmark As Logical,
+	mnRows, mnSite1RowID, mnSite2RowID As Integer
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECreateDualAnalysisDlg(	  Byval sQuery As String
+										) As Logical
+
+
+OnError GoTo ErrorOccured
+
+PSYTECreateDualAnalysisDlg = FALSE
+
+	msQuery		= sQuery
+	mbAddBenchmark	= FALSE
+	mnRows		= TableInfo(sQuery, TAB_INFO_NROWS)
+	ReDim marrColumnNames(0)
+	If COLGetListOfNames(sQuery, CRITERIA_USE_CHAR, marrColumnNames()) = 0 Then
+		Note "Please select two sites from a table with at least one char column!"
+		Exit Function
+	End If
+
+	Dialog
+		Title "Create Dual Site Analysis"
+		Calling PSYTECDADHandlerOnDialogLoad
+
+		Control StaticText	Position 5,5
+			Title "Input: " & sQuery
+		Control StaticText	Position 5,15
+			Title "Records: " & FormatNumber$(mnRows)
+
+		Control StaticText	Position 5,30
+			Title "Name Column:"
+		Control PopupMenu	Position 5,40		ID CTRL_LST_NAME_COLUMN
+			Title From Variable marrColumnNames
+			Width 250
+			Calling PSYTECDADHandlerNameColumnClicked
+
+		Control StaticText	Position 5,60
+			Title "Site 1:"
+		Control PopupMenu	Position 5,70		ID CTRL_LST_NAMES_SITE1
+'			Title From Variable marrSiteNames
+			Width 120
+			Calling PSYTECDADHandlerSite1NamesClicked
+		Control StaticText	Position 135,60
+			Title "Site 2:"
+		Control PopupMenu	Position 135,70	ID CTRL_LST_NAMES_SITE2
+'			Title From Variable marrSiteNames
+			Width 120
+			Disable
+
+		Control StaticText	Position 5,90
+			Title "Use Layout Template:"
+		Control PopupMenu	Position 5,100		ID CTRL_LST_LAYOUT_TEMPLATES
+			Title From Variable marrLayoutTemplates
+			Width 250
+
+		Control CheckBox	Position 5,120		ID CTRL_CHK_ADD_BENCHMARK
+			Title "Add Benchmark to Output:"
+			Value PSYTECDADAddBenchmark()
+			Calling PSYTECDADHandlerAddBenchmarkClicked
+			Disable
+		Control PopupMenu	Position 5,130		ID CTRL_LST_BENCHMARK_TYPES
+			Title From Variable marrLayoutTemplates
+			Width 250
+'			Disable
+
+		Control OKButton
+			Calling PSYTECDADHandlerOKClicked
+		Control CancelButton
+
+	If not CommandInfo(CMD_INFO_DLG_OK) Then
+		Exit Function
+	End If
+
+PSYTECreateDualAnalysisDlg = TRUE
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECreateDualAnalysisDlg")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECDADHandlerOnDialogLoad
+
+Dim	nItem As Integer
+
+OnError GoTo ErrorOccured
+
+	If PSYTECDADGetNameColumn() <> "" Then
+		nItem = ARRAYFindValueString(marrColumnNames, PSYTECDADGetNameColumn())
+	End If
+	Alter Control CTRL_LST_NAME_COLUMN	Value IIf(nItem = 0, 1, nItem)
+
+	Call PSYTECDADHandlerNameColumnClicked
+	Call PSYTECDADHandlerAddBenchmarkClicked
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADHandlerOnDialogLoad")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECDADHandlerOKClicked
+
+Dim	nCtrl As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrl = ReadControlValue(CTRL_LST_NAME_COLUMN)
+	If nCtrl = 0 Then
+		Note "Please select a column holding the name of the sites!"
+		Dialog Preserve
+		Exit Sub
+	End If
+	msNameColumn	= marrColumnNames(nCtrl)
+
+	nCtrl = ReadControlValue(CTRL_LST_LAYOUT_TEMPLATES)
+	If nCtrl = 0 Then
+		Note "Please select a layout template to use for the analysis result!"
+		Dialog Preserve
+		Exit Sub
+	End If
+
+	mbAddBenchmark	= ReadControlValue(CTRL_CHK_ADD_BENCHMARK)
+	If mbAddBenchmark Then
+		msLayoutTemplateFile	= PSYTECGetLayoutFile("DualSiteWithBenchmark", nCtrl)
+
+		nCtrl = ReadControlValue(CTRL_LST_BENCHMARK_TYPES)
+		If nCtrl = 0 Then
+			Note "Please select a benchmark type to add to the analysis result!"
+			Dialog Preserve
+			Exit Sub
+		End If
+	Else
+		msLayoutTemplateFile	= PSYTECGetLayoutFile("DualSiteWithoutBenchmark", nCtrl)
+	End If
+
+	If ReadControlValue(CTRL_LST_NAMES_SITE1) = 0 Then
+		Note "Please select which record is the primary site!"
+		Dialog Preserve
+		Exit Sub
+	End If
+	mnSite1RowID	= ReadControlValue(CTRL_LST_NAMES_SITE1)
+	mnSite2RowID	= ReadControlValue(CTRL_LST_NAMES_SITE2)
+	Print "Site 1 RowID: " & mnSite1RowID
+	Print "Site 2 RowID: " & mnSite2RowID
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADHandlerOKClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECDADHandlerAddBenchmarkClicked
+
+Dim	sType As String
+
+OnError GoTo ErrorOccured
+
+	If ReadControlValue(CTRL_CHK_ADD_BENCHMARK) Then
+		Alter Control CTRL_LST_BENCHMARK_TYPES	Enable
+		sType	= "DualSiteWithBenchmark"
+	Else
+		Alter Control CTRL_LST_BENCHMARK_TYPES	Disable
+		sType	= "DualSiteWithoutBenchmark"
+	End If
+
+	ReDim marrLayoutTemplates(0)
+	If PSYTECGetLayoutNames( sType, marrLayoutTemplates) Then
+
+	End If
+	Alter Control CTRL_LST_LAYOUT_TEMPLATES	Title From Variable marrLayoutTemplates
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADHandlerAddBenchmarkClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECDADHandlerNameColumnClicked
+
+Dim	aCol As Alias,
+	sCol As String,
+	nCtrl As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrl	= ReadControlValue(CTRL_LST_NAME_COLUMN)
+	If nCtrl > 0 Then
+		sCol = marrColumnNames(nCtrl)
+		aCol	= msQuery & "." & sCol
+
+		Fetch First From msQuery
+		marrSiteNames(1)	= aCol
+		Fetch Last From msQuery
+		marrSiteNames(2)	= aCol
+	Else
+		marrSiteNames(1)	= ""
+		marrSiteNames(2)	= ""
+	End If
+
+	Alter Control CTRL_LST_NAMES_SITE1	Title From Variable marrSiteNames	Value 1
+	Alter Control CTRL_LST_NAMES_SITE2	Title From Variable marrSiteNames
+	Call PSYTECDADHandlerSite1NamesClicked
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADHandlerNameColumnClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECDADHandlerSite1NamesClicked
+
+Dim	nCtrl As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrl	= ReadControlValue(CTRL_LST_NAMES_SITE1)
+	Alter Control CTRL_LST_NAMES_SITE2 Value IIf(nCtrl = 1, 2, 1)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADHandlerSite1NamesClicked")
+	Call ERRShow()
+
+End Sub
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECDADGetNameColumn() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECDADGetNameColumn = msNameColumn
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADGetNameColumn")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECDADGetLayoutTemplateFile() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECDADGetLayoutTemplateFile = msLayoutTemplateFile
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADGetLayoutTemplateFile")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECDADGetRowID(	ByVal nSite As Integer
+						) As Integer
+
+OnError GoTo ErrorOccured
+
+	Do Case nSite
+		Case 1
+			PSYTECDADGetRowID = mnSite1RowID
+		Case 2
+			PSYTECDADGetRowID = mnSite2RowID
+	End Case
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADGetLayoutTemplateFile")
+	Call ERRShow()
+
+End Function
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECDADAddBenchmark() As Logical
+
+OnError GoTo ErrorOccured
+
+	PSYTECDADAddBenchmark = mbAddBenchmark
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADAddBenchmark")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECDADGetBenchmarkType() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECDADGetBenchmarkType = msBenchmarkType
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECDADGetBenchmarkType")
+	Call ERRShow()
+
+End Function
