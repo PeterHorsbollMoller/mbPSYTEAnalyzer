@@ -4,9 +4,10 @@
 '** Modul:
 '**
 '*******************************************************************************
+'	10-01-2024 08:54:23	v1.1.0:	support for benchmark values
+'*******************************************************************************
 'Additional improvements
 '	- Allow batch creation of analysis using multiple selected catchment areas or an entire table
-'	- Add support for benchmark values
 '	- Use catchment area to mask the map in the layout
 '*******************************************************************************
 
@@ -25,8 +26,8 @@ Include "Library\Defaults.def"
 Define xProgram 		"PSYTEAnalyzer"
 Define xProgramName		"PSYTE Analyzer"
 Define xProgramMenu		"PSYTE"
-Define xVersion 		"1.0"
-Define xYear			"2023"
+Define xVersion 		"1.1.2"
+Define xYear			"2024"
 Define xAddToMenuBar	FALSE
 
 Define FILE_INI			GetFolderPath$(FOLDER_MI_PREFERENCE) & xProgram & ".ini"
@@ -71,9 +72,23 @@ Declare Function PSYTEAddSiteToTempSegmTable(  ByVal sSegmTab As String
 									, ByVal sSiteTab As String
 									, ByVal sSiteID As String	'Typically this would be "2"
 									) As Logical
+Declare Function PSYTEAddBenchmarkToTempSegmTable(  ByVal sSegmTab As String
+										, ByVal sBenchmarkType As String
+										, ByVal sBenchmarkTitle As String
+										) As Logical
 
 
 Declare Sub PSYTESelectDataTabFile
+
+Declare Sub PSYTECreateLayoutGraphs( ByVal nLayoutWID As Integer
+							, ByVal nNumSites As Integer 			' 1 or 2, potentially more as we may support this moving forward
+							, ByVal bIncludeReference As Logical	'Include graph for reference value
+							, ByVal nNumTopItems As Integer		'Numbe rof Item of the Top: 3, 5, 10, 20, ...
+							, ByVal fGraphWidth As Float			'Width of graph in cm
+							, ByVal fGraphHeight As Float			'Height of graph in cm
+							, ByVal fGraphSpace As Float			'Space between group of graphs in cm
+							, ByVal nGraphType As Integer			'1: Bar (horisontal), 2: Column (vertical)
+							)
 
 '**********************************************************************************************''
 '**   Created by Peter Horsbøll Møller, Precisely
@@ -115,6 +130,9 @@ OnError GoTo ErrorOccured
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTop", "PSYTEGetTop", "Returns the value from a the top most PSYTE segments for the site")
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetTopExt", "PSYTEGetTopExt", "Returns the value from a the top most PSYTE segments for site1, site2 or benchmark")
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteName", "PSYTEGetSiteName", "Returns the name of the sites. Use 1 for first site and 2 for second site")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetBenchmarkTitle", "PSYTEGetBenchmarkTitle", "Returns the title (code and name) of the benchmark area")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetBenchmarkName", "PSYTEGetBenchmarkName", "Returns the name of the benchmark area")
+	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetBenchmarkCode", "PSYTEGetBenchmarkCode", "Returns the code of the benchmark area")
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteColumnValue", "PSYTEGetSiteValue", "Returns the value from a specified column of the first record in the site table")
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetSiteColumnValueErr", "PSYTEGetSiteValueErr", "Returns the value from a specified column of of the first record in the site table")
 	bResult	= RBNRegisterFunctionAsPublic("PSYTELGetColumnValue", "PSYTEGetColumnValue", "Returns the value from a specified column of a single record in the site table")
@@ -254,11 +272,15 @@ OnError GoTo ErrorOccured
 
 	If PSYTECGetDataDirectory() = "" Then
 		Call PSYTESelectDataTabFile
-'		If TABIsOpen(PSYTECTable("")) Then
-'			Call PSYTECSetDataDirectory(PathToDirectory$(TableInfo(PSYTECTable(""), TAB_INFO_TABFILE)))
-'		End If
 		If PSYTECGetDataDirectory() = "" Then
 			Exit Sub
+		End If
+	End If
+
+	If PSYTECBenchmarkTabFile() = "" Then
+		If PSYTECBenchmarkTxtFile() <> "" Then
+			Call DEBUGPrint("Loading Benchmark file from " & PSYTECBenchmarkTxtFile() & "...")
+			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile())
 		End If
 	End If
 
@@ -286,21 +308,16 @@ OnError GoTo ErrorOccured
 	End If
 
 	If PSYTECSADAddBenchmark() Then
-		If Not FileExists(PSYTECBenchmarkTabFile()) Then
-			Call DEBUGPrint("Loading Benchmark file...")
-			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile(), PSYTECBenchmarkTabFile())
-		End If
-		If Not FileExists(PSYTECBenchmarkTabFile()) Then
-
-		Else
-			Print "Benchmark file not found: " & PSYTECBenchmarkTabFile()
-			Note "Benchmark File was not loaded therefor benchmarks can't be used!"
+		If PSYTECBenchmarkTabFile() <> "" Then
+			If Not PSYTEAddBenchmarkToTempSegmTable(sSegmTab, PSYTECSADGetBenchmarkType(), PSYTECSADGetBenchmarkTitle()) Then
+				'**Failed adding banchmark
+			End If
 		End If
 	End If
 
 	Set Progressbars On
 
-	Call PSYTELayoutNewSingleSite(nMID, sName, sSiteTab, sSegmTab, PSYTECSADGetLayoutTemplateFile())
+	Call PSYTELayoutNewSingleSite(nMID, sName, PSYTECSADGetBenchmarkType(), PSYTECSADGetBenchmarkTitle(), sSiteTab, sSegmTab, PSYTECSADGetLayoutTemplateFile())
 
 	Call TABClose(sQuery)
 	Call TABClose(sSegmTab)
@@ -340,11 +357,15 @@ OnError GoTo ErrorOccured
 
 	If PSYTECGetDataDirectory() = "" Then
 		Call PSYTESelectDataTabFile
-'		If TABIsOpen(PSYTECTable("")) Then
-'			Call PSYTECSetDataDirectory(PathToDirectory$(TableInfo(PSYTECTable(""), TAB_INFO_TABFILE)))
-'		End If
 		If PSYTECGetDataDirectory() = "" Then
 			Exit Sub
+		End If
+	End If
+
+	If PSYTECBenchmarkTabFile() = "" Then
+		If PSYTECBenchmarkTxtFile() <> "" Then
+			Call DEBUGPrint("Loading Benchmark file from " & PSYTECBenchmarkTxtFile() & "...")
+			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile())
 		End If
 	End If
 
@@ -386,22 +407,19 @@ OnError GoTo ErrorOccured
 		Exit Sub
 	End If
 
+'	Call DEBUGPrint("PSYTECDADAddBenchmark() = " & PSYTECDADAddBenchmark())
 	If PSYTECDADAddBenchmark() Then
-		If Not FileExists(PSYTECBenchmarkTabFile()) Then
-			Call DEBUGPrint("Loading Benchmark file...")
-			Call PSYTELLoadBenchmarkTable(PSYTECBenchmarkTxtFile(), PSYTECBenchmarkTabFile())
-		End If
-		If Not FileExists(PSYTECBenchmarkTabFile()) Then
-
-		Else
-			Print "Benchmark file not found: " & PSYTECBenchmarkTabFile()
-			Note "Benchmark File was not loaded therefor benchmarks can't be used!"
+'		Call DEBUGPrint("PSYTECBenchmarkTabFile() = " & PSYTECBenchmarkTabFile())
+		If PSYTECBenchmarkTabFile() <> "" Then
+			If Not PSYTEAddBenchmarkToTempSegmTable(arrSegmTables(1), PSYTECDADGetBenchmarkType(), PSYTECDADGetBenchmarkTitle()) Then
+				'**Failed adding banchmark
+			End If
 		End If
 	End If
 
 	Set Progressbars On
 
-	Call PSYTELayoutNewDualSites(nMID, arrNames(), arrSiteTables(), arrSegmTables(1), PSYTECDADGetLayoutTemplateFile())
+	Call PSYTELayoutNewDualSites(nMID, arrNames(), PSYTECDADGetBenchmarkType(), PSYTECDADGetBenchmarkTitle(), arrSiteTables(), arrSegmTables(1), PSYTECDADGetLayoutTemplateFile())
 
 	Call TABClose(sQuery)
 	Call TABClose(arrSegmTables(1))
@@ -520,7 +538,7 @@ PSYTECreateTempSegmTable = ""
 
 	If Not FileExists(PSYTECSegmentLabelsTabFile()) Then
 		Call DEBUGPrint("Loading Segment Labels file...")
-		Call PSYTELLoadSegmentLabelsTable(PSYTECSegmentLabelsTxtFile(), PSYTECSegmentLabelsTabFile())
+		Call PSYTELLoadSegmentLabelsTable(PSYTECSegmentLabelsTxtFile())
 	End If
 
 	If FileExists(PSYTECSegmentLabelsTabFile()) Then
@@ -648,6 +666,80 @@ End Function
 '**********************************************************************************************''
 'Created by Peter Horsbøll Møller, Precisely
 'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTEAddBenchmarkToTempSegmTable(	  ByVal sSegmTab As String
+									, ByVal sBenchmarkType As String
+									, ByVal sBenchmarkTitle As String
+									) As Logical
+
+Dim	nTotal, nSegm, nRowID As Integer,
+	sSegm, sCol As String,
+	aSegm, aRowID, aBM As Alias
+
+OnError GoTo ErrorOccured
+
+PSYTEAddBenchmarkToTempSegmTable = FALSE
+
+	Open Table PSYTECBenchmarkTabFile()
+
+	Alter Table sSegmTab
+		(Add "Households_BM" Float
+			, "Households_PCT_BM" Float
+			)
+
+	Call DEBUGPrint("Query: Where 'code ' ' & areaname = '" & sBenchmarkTitle & " And type = " & sBenchmarkType)
+	Select * From PSYTECBenchmarkTable()
+		Where code & " " & areaname = sBenchmarkTitle
+		And type = sBenchmarkType
+		Into __CURR__BENCHMARK NoSelect Hide
+
+	If TableInfo(__CURR__BENCHMARK, TAB_INFO_NROWS) > 0 Then
+		Fetch First From __CURR__BENCHMARK
+		nTotal	= __CURR__BENCHMARK.PG01 + __CURR__BENCHMARK.PG02	+ __CURR__BENCHMARK.PG03 + __CURR__BENCHMARK.PG04 + __CURR__BENCHMARK.PG05 + __CURR__BENCHMARK.PG06 + __CURR__BENCHMARK.PG07
+					+ __CURR__BENCHMARK.PG08 + __CURR__BENCHMARK.PG09 + __CURR__BENCHMARK.PG10 + __CURR__BENCHMARK.PG11 + __CURR__BENCHMARK.PG12 + __CURR__BENCHMARK.PGNC
+
+		aSegm	= sSegmTab & ".psyte_seg"
+		aRowID	= sSegmTab & ".ROWID"
+		Fetch First From sSegmTab
+		Do Until EOT(sSegmTab)
+			sSegm	= aSegm
+			nRowID	= aRowID
+			'sSegm: "01.4" -> "PS01_4"
+			'sSegm: "NC.0" -> "PSNC_0"
+			sCol		= "PS" & STRINGReplace(sSegm, ".", "_")
+			aBM		= "__CURR__BENCHMARK." & sCol
+			nSegm	= aBM
+
+			Update sSegmTab
+				Set Households_BM		= nSegm,
+					Households_PCT_BM	= IIf(nTotal = 0, 100, Round((nSegm / nTotal) * 100, 0.01))
+				Where ROWID			= nRowID
+
+			Fetch Next From sSegmTab
+		Loop
+		PSYTEAddBenchmarkToTempSegmTable = TRUE
+	End If
+
+	Commit Table sSegmTab
+
+	Call TABClose("__CURR__BENCHMARK")
+	Call TABClose(PSYTECBenchmarkTable())
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTEAddBenchmarkToTempSegmTable")
+	Call ERRShow()
+
+End Function
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
 '
 '**********************************************************************************************''
 Sub PSYTESiteAnalysisMultiple
@@ -696,4 +788,44 @@ ErrorOccured:
 
 End Sub
 
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECreateLayoutGraphs(	  ByVal nLayoutWID As Integer
+						, ByVal nNumSites As Integer 			' 1 or 2, potentially more as we may support this moving forward
+						, ByVal bIncludeReference As Logical	'Include graph for reference value
+						, ByVal nNumTopItems As Integer		'Numbe rof Item of the Top: 3, 5, 10, 20, ...
+						, ByVal fGraphWidth As Float			'Width of graph in cm
+						, ByVal fGraphHeight As Float			'Height of graph in cm
+						, ByVal fGraphSpace As Float			'Space between group of graphs in cm
+						, ByVal nGraphType As Integer			'1: Bar (horisontal), 2: Column (vertical)
+						)
+
+Dim	nTopItem, nNumSite as Integer,
+	fStartX, fStartY, fX, fY As Float
+
+OnError GoTo ErrorOccured
+
+	fStartX	= 5.0
+	fStartY	= 5.0
+
+	For nTopItem = 1 To nNumTopItems
+		For nNumSite = 1 To nNumSites
+
+		Next
+		If bIncludeReference Then
+
+		End If
+	Next
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECreateLayoutGraphs")
+	Call ERRShow()
+
+End Sub
 

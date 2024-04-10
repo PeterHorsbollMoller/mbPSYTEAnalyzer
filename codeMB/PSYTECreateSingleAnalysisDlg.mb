@@ -23,17 +23,20 @@ Define	CTRL_LST_NAME_COLUMN		100
 Define	CTRL_LST_LAYOUT_TEMPLATES	200
 Define	CTRL_CHK_ADD_BENCHMARK		300
 Define	CTRL_LST_BENCHMARK_TYPES		310
+Define	CTRL_LST_BENCHMARK_NAMES		320
 
 Include "PSYTEConfig.def"
+Include "PSYTELoader.def"
 Include "PSYTECreateSingleAnalysisDlg.def"
 
 Declare Sub PSYTECSADHandlerOnDialogLoad
 Declare Sub PSYTECSADHandlerOKClicked
 Declare Sub PSYTECSADHandlerAddBenchmarkClicked
+Declare Sub PSYTECSADHandlerBenchmarkTypeClicked
 
 
-Dim	msNameColumn, msLayoutTemplateFile, msBenchmarkType As String,
-	marrColumnNames(), marrLayoutTemplates() As String,
+Dim	msNameColumn, msLayoutTemplateFile, msBenchmarkType, msBenchmarkTitle As String,
+	marrColumnNames(), marrLayoutTemplates(), marrBenchmarkTypes(), marrBenchmarkTitles() As String,
 	mbAddBenchmark As Logical,
 	mnRows As Integer
 '**********************************************************************************************''
@@ -45,7 +48,6 @@ Dim	msNameColumn, msLayoutTemplateFile, msBenchmarkType As String,
 '**********************************************************************************************''
 Function PSYTECreateSingleAnalysisDlg(	  Byval sQuery As String
 										) As Logical
-
 
 OnError GoTo ErrorOccured
 
@@ -86,9 +88,10 @@ PSYTECreateSingleAnalysisDlg = FALSE
 			Calling PSYTECSADHandlerAddBenchmarkClicked
 			Disable
 		Control PopupMenu	Position 5,100		ID CTRL_LST_BENCHMARK_TYPES
-			Title From Variable marrLayoutTemplates
-			Width 250
-'			Disable
+			Width 75
+			Calling PSYTECSADHandlerBenchmarkTypeClicked
+		Control PopupMenu	Position 85,100	ID CTRL_LST_BENCHMARK_NAMES
+			Width 170
 
 		Control OKButton
 			Calling PSYTECSADHandlerOKClicked
@@ -124,7 +127,14 @@ OnError GoTo ErrorOccured
 	End If
 	Alter Control CTRL_LST_NAME_COLUMN	Value IIf(nItem = 0, 1, nItem)
 
+	If PSYTECSupportsBenchmark() Then
+		Alter Control CTRL_CHK_ADD_BENCHMARK Enable
+	Else
+		Alter Control CTRL_CHK_ADD_BENCHMARK Disable
+		Alter Control CTRL_CHK_ADD_BENCHMARK Value FALSE
+	End If
 	Call PSYTECSADHandlerAddBenchmarkClicked
+
 	Exit Sub
 '-------------------------
 ErrorOccured:
@@ -169,6 +179,15 @@ OnError GoTo ErrorOccured
 			Dialog Preserve
 			Exit Sub
 		End If
+		msBenchmarkType	= marrBenchmarkTypes(nCtrl)
+		nCtrl = ReadControlValue(CTRL_LST_BENCHMARK_NAMES)
+		If nCtrl = 0 Then
+			Note "Please select a benchmark name to add to the analysis result!"
+			Dialog Preserve
+			Exit Sub
+		End If
+		msBenchmarkTitle	= marrBenchmarkTitles(nCtrl)
+'		Note "PSYTECSADHandlerOKClicked: Type: " & msBenchmarkType & " Name: " & msBenchmarkTitle
 	Else
 		msLayoutTemplateFile	= PSYTECGetLayoutFile("SingleSiteWithoutBenchmark", nCtrl)
 	End If
@@ -188,15 +207,32 @@ End Sub
 '**********************************************************************************************''
 Sub PSYTECSADHandlerAddBenchmarkClicked
 
-Dim	sType As String
+Dim	sType As String,
+	nItem As Integer
 
 OnError GoTo ErrorOccured
 
 	If ReadControlValue(CTRL_CHK_ADD_BENCHMARK) Then
 		Alter Control CTRL_LST_BENCHMARK_TYPES	Enable
+		Alter Control CTRL_LST_BENCHMARK_NAMES	Enable
 		sType	= "SingleSiteWithBenchmark"
+
+		ReDim marrBenchmarkTypes(0)
+		If PSYTELGetBenchmarkTypes(marrBenchmarkTypes()) = 0 Then
+			Note "Unfortunately, benchmark records can't be loaded!"
+			Alter Control CTRL_LST_BENCHMARK_TYPES	Disable
+			Alter Control CTRL_LST_BENCHMARK_NAMES	Disable
+			Exit Sub
+		End If
+
+		Alter Control CTRL_LST_BENCHMARK_TYPES Title From Variable marrBenchmarkTypes
+		nItem	= ARRAYFindValueString(marrBenchmarkTypes, msBenchmarkType)
+		Alter Control CTRL_LST_BENCHMARK_TYPES Value IIf(nItem > 0, nItem, 1)
+
+		Call PSYTECSADHandlerBenchmarkTypeClicked
 	Else
 		Alter Control CTRL_LST_BENCHMARK_TYPES	Disable
+		Alter Control CTRL_LST_BENCHMARK_NAMES	Disable
 		sType	= "SingleSiteWithoutBenchmark"
 	End If
 
@@ -210,6 +246,44 @@ OnError GoTo ErrorOccured
 '-------------------------
 ErrorOccured:
 	Call ERRCreate(Err(), Error$(), "PSYTECSADHandlerAddBenchmarkClicked")
+	Call ERRShow()
+
+End Sub
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'
+'**********************************************************************************************''
+Sub PSYTECSADHandlerBenchmarkTypeClicked
+
+Dim	sType As String,
+	nCtrl, nItem As Integer
+
+OnError GoTo ErrorOccured
+
+	nCtrl	= ReadControlValue(CTRL_LST_BENCHMARK_TYPES)
+	If nCtrl = 0 Then
+		Exit Sub
+	End If
+	sType	= marrBenchmarkTypes(nCtrl)
+
+	ReDim marrBenchmarkTitles(0)
+	If PSYTELGetBenchmarkTitles(sType, marrBenchmarkTitles()) = 0 Then
+		Note "Unfortunately, benchmark records can't be loaded!"
+		Alter Control CTRL_LST_BENCHMARK_TYPES	Disable
+		Alter Control CTRL_LST_BENCHMARK_NAMES	Disable
+		Exit Sub
+	End If
+
+	Alter Control CTRL_LST_BENCHMARK_NAMES Title From Variable marrBenchmarkTitles
+	nItem	= ARRAYFindValueString(marrBenchmarkTitles, msBenchmarkTitle)
+	Alter Control CTRL_LST_BENCHMARK_NAMES Value IIf(nItem > 0, nItem, 1)
+
+	Exit Sub
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADHandlerBenchmarkTypeClicked")
 	Call ERRShow()
 
 End Sub
@@ -290,6 +364,26 @@ OnError GoTo ErrorOccured
 '-------------------------
 ErrorOccured:
 	Call ERRCreate(Err(), Error$(), "PSYTECSADGetBenchmarkType")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTECSADGetBenchmarkTitle() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTECSADGetBenchmarkTitle = msBenchmarkTitle
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSADGetBenchmarkTitle")
 	Call ERRShow()
 
 End Function

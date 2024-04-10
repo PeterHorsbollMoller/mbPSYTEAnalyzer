@@ -65,7 +65,14 @@ Function PSYTECBenchmarkTabFile() As String
 
 OnError GoTo ErrorOccured
 
-	PSYTECBenchmarkTabFile	= PSYTECGetDataDirectory() & "psyte_us_bench.TAB"
+	If FileExists(PSYTECGetDataDirectory() & "psyte_usa_bench.TAB") Then
+		PSYTECBenchmarkTabFile	= PSYTECGetDataDirectory() & "psyte_usa_bench.TAB"
+	ElseIf FileExists(PSYTECGetDataDirectory() & "psyte_usa_bench_sample.TAB") Then
+		PSYTECBenchmarkTabFile	= PSYTECGetDataDirectory() & "psyte_usa_bench_sample.TAB"
+	Else
+		CAll DEBUGPrint("psyte_usa_bench(_sample).TAB not found in data folder: " & PSYTECGetDataDirectory())
+		PSYTECBenchmarkTabFile	= ""
+	End If
 	Exit Function
 '-------------------------
 ErrorOccured:
@@ -78,7 +85,15 @@ Function PSYTECBenchmarkTxtFile() As String
 
 OnError GoTo ErrorOccured
 
-	PSYTECBenchmarkTxtFile	= PSYTECGetDataDirectory() & "psyte_us_bench.txt"
+	If FileExists(PSYTECGetDataDirectory() & "psyte_usa_bench.txt") Then
+		PSYTECBenchmarkTxtFile	= PSYTECGetDataDirectory() & "psyte_usa_bench.txt"
+	ElseIf FileExists(PSYTECGetDataDirectory() & "psyte_usa_bench_sample.txt") Then
+		PSYTECBenchmarkTxtFile	= PSYTECGetDataDirectory() & "psyte_usa_bench_sample.txt"
+	Else
+		CAll DEBUGPrint("psyte_usa_bench(_sample).TXT not found in data folder: " & PSYTECGetDataDirectory())
+		PSYTECBenchmarkTxtFile	= ""
+	End If
+
 	Exit Function
 '-------------------------
 ErrorOccured:
@@ -97,6 +112,19 @@ OnError GoTo ErrorOccured
 '-------------------------
 ErrorOccured:
 	Call ERRCreate(Err(), Error$(), "PSYTECBenchmarkTable")
+	Call ERRShow()
+
+End Function
+'**********************************************************************************************''
+Function PSYTECSupportsBenchmark() As Logical
+
+OnError GoTo ErrorOccured
+
+	PSYTECSupportsBenchmark = PSYTECBenchmarkTxtFile() <> "" Or PSYTECBenchmarkTabFile() <> ""
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTECSupportsBenchmark")
 	Call ERRShow()
 
 End Function
@@ -542,7 +570,7 @@ OnError GoTo ErrorOccured
 		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_SINGLE_SITE", "LAYOUT" & nFile)
 		If sValue = "" Then
 			If nFile = 1 Then
-				Call ARRAYAddValueString(marrSingleSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Single Site A4.wor"))
+				Call ARRAYAddValueString(marrSingleSiteLayoutFiles, ApplicationDirectory$() & "Layouts\Single Site A4.wor")
 			End If
 			Exit Do
 		Else
@@ -556,7 +584,7 @@ OnError GoTo ErrorOccured
 		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_SINGLE_SITE_BENCHMARK", "LAYOUT" & nFile)
 		If sValue = "" Then
 			If nFile = 1 Then
-				Call ARRAYAddValueString(marrSingleSiteBenchmarkLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Single Site Benchmark A4.wor"))
+				Call ARRAYAddValueString(marrSingleSiteBenchmarkLayoutFiles, ApplicationDirectory$() & "Layouts\Single Site Benchmark A4.wor")
 			End If
 			Exit Do
 		Else
@@ -570,7 +598,7 @@ OnError GoTo ErrorOccured
 		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_DUAL_SITES", "LAYOUT" & nFile)
 		If sValue = "" Then
 			If nFile = 1 Then
-				Call ARRAYAddValueString(marrDualSiteLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Dual Sites Legend A4.wor"))
+				Call ARRAYAddValueString(marrDualSiteLayoutFiles, ApplicationDirectory$() & "Layouts\Dual Sites Legend A4.wor")
 			End If
 			Exit Do
 		Else
@@ -584,7 +612,7 @@ OnError GoTo ErrorOccured
 		sValue = CONFIGReadKey(msConfigFile, "LAYOUT_DUAL_SITES_BENCHMARK", "LAYOUT" & nFile)
 		If sValue = "" Then
 			If nFile = 1 Then
-				Call ARRAYAddValueString(marrDualSiteBenchmarkLayoutFiles, FILEGetAbsolutePath(ApplicationDirectory$(), "Layouts\Dual Sites Benchmark A4.wor"))
+				Call ARRAYAddValueString(marrDualSiteBenchmarkLayoutFiles, ApplicationDirectory$() & "Layouts\Dual Sites Benchmark A4.wor")
 			End If
 			Exit Do
 		Else

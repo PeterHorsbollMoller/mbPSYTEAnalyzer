@@ -13,6 +13,7 @@ Include "Menu.def"
 Include "Library\Defaults.def"
 
 '-------------------------------------
+Include "Library\ARRAYLib.def"
 Include "Library\DEBUGLib.def"
 Include "Library\FILELib.def"
 Include "Library\ERRORLib.def"
@@ -27,10 +28,9 @@ Include "PSYTELoader.def"
 '
 '**********************************************************************************************''
 Sub PSYTELLoadBenchmarkTable(	  ByVal sTXTFile As String		'TXT File to load
-						, ByVal sTABFile As String		'TAB File to save it into
 						)
 
-Dim	sTempFile, sTab, sCmd As String,
+Dim	sTABFile, sTempFile, sTab, sCmd As String,
 	nCol As Integer,
 	tStart As Time
 
@@ -39,7 +39,8 @@ OnError GoTo ErrorOccured
 	tStart	= CurTime()
 	Set Progressbars Off
 	Call DEBUGPrint("Loading Benchmark File into TAB Format " & (CurTime() - tStart) & " secs")
-	sTempFile	= FILEWindowsTempFolder() & "__tmp_benchhmark.tab"
+	sTempFile	= FILEWindowsTempFolder() & "__tmp_benchmark.tab"
+	sTABFile	= Left$(sTXTFile, Len(sTXTFile) - 3) & "TAB"
 	Register Table sTXTFile
 		 TYPE ASCII Delimiter 124 Titles Charset "WindowsLatin1"
 		 Into sTempFile
@@ -51,45 +52,45 @@ OnError GoTo ErrorOccured
 	Open Table sTABFile
 	sTab	= PathToTableName$(sTABFile)
 
-	Call DEBUGPrint("Adding Totals Columns " & (CurTime() - tStart) & " secs")
+'	Call DEBUGPrint("Adding Totals Columns " & (CurTime() - tStart) & " secs")
 
-	Alter Table sTab ( Add PG_TOTAL Integer, PS_TOTAL Integer)
+'	Alter Table sTab ( Add PG_TOTAL Integer, PS_TOTAL Integer)
 
 	'**PSYTE Group Columns
-	Call DEBUGPrint("Adding PSYTE Group Columns " & (CurTime() - tStart) & " secs")
-	For nCol = 1 To PSYTECNumGroupColumns()
-		sCmd = PSYTECGetGroupColumn(nCol) + "+"
-	Next
-	sCmd = Left$(sCmd, Len(sCmd) - 1)
-	sCmd = "Update " & sTab & " Set PG_TOTAL = " & sCmd
-	Call DEBUGPrint(sCmd)
-	Run Command sCmd
+'	Call DEBUGPrint("Adding PSYTE Group Columns " & (CurTime() - tStart) & " secs")
+'	For nCol = 1 To PSYTECNumGroupColumns()
+'		sCmd = PSYTECGetGroupColumn(nCol) + "+"
+'	Next
+'	sCmd = Left$(sCmd, Len(sCmd) - 1)
+'	sCmd = "Update " & sTab & " Set PG_TOTAL = " & sCmd
+'	Call DEBUGPrint(sCmd)
+'	Run Command sCmd
 
-	Call DEBUGPrint("Updating PSYTE Group Columns " & (CurTime() - tStart) & " secs")
-	For nCol = 1 To PSYTECNumGroupColumns()
-		Alter Table sTab ( Add PSYTECGetGroupColumn(nCol) & "_PCT" Float )
-		sCmd = "Update " & sTab & " Set " & PSYTECGetGroupColumn(nCol) & "_PCT = Round((" & PSYTECGetGroupColumn(nCol) & " / PG_TOTAL) * 100, 0.01)"
-		Call DEBUGPrint(sCmd)
-		Run Command sCmd
-	Next
+'	Call DEBUGPrint("Updating PSYTE Group Columns " & (CurTime() - tStart) & " secs")
+'	For nCol = 1 To PSYTECNumGroupColumns()
+'		Alter Table sTab ( Add PSYTECGetGroupColumn(nCol) & "_PCT" Float )
+'		sCmd = "Update " & sTab & " Set " & PSYTECGetGroupColumn(nCol) & "_PCT = Round((" & PSYTECGetGroupColumn(nCol) & " / PG_TOTAL) * 100, 0.01)"
+'		Call DEBUGPrint(sCmd)
+'		Run Command sCmd
+'	Next
 
 	'**PSYTE Segment Columns
-	Call DEBUGPrint("Adding PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
-	For nCol = 1 To PSYTECNumSegmentColumns()
-		sCmd = PSYTECGetSegmentColumn(nCol) + "+"
-	Next
-	sCmd = Left$(sCmd, Len(sCmd) - 1)
-	sCmd = "Update " & sTab & " Set PS_TOTAL = " & sCmd
-	Call DEBUGPrint(sCmd)
-	Run Command sCmd
+'	Call DEBUGPrint("Adding PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
+'	For nCol = 1 To PSYTECNumSegmentColumns()
+'		sCmd = PSYTECGetSegmentColumn(nCol) + "+"
+'	Next
+'	sCmd = Left$(sCmd, Len(sCmd) - 1)
+'	sCmd = "Update " & sTab & " Set PS_TOTAL = " & sCmd
+'	Call DEBUGPrint(sCmd)
+'	Run Command sCmd
 
-	Call DEBUGPrint("Updating PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
-	For nCol = 1 To PSYTECNumSegmentColumns()
-		Alter Table sTab ( Add PSYTECGetSegmentColumn(nCol) & "_PCT" Float )
-		sCmd = "Update " & sTab & " Set " & PSYTECGetSegmentColumn(nCol) & "_PCT = Round((" & PSYTECGetSegmentColumn(nCol) & " / PS_TOTAL) * 100, 0.01)"
-		Call DEBUGPrint(sCmd)
-		Run Command sCmd
-	Next
+'	Call DEBUGPrint("Updating PSYTE Segment Columns " & (CurTime() - tStart) & " secs")
+'	For nCol = 1 To PSYTECNumSegmentColumns()
+'		Alter Table sTab ( Add PSYTECGetSegmentColumn(nCol) & "_PCT" Float )
+'		sCmd = "Update " & sTab & " Set " & PSYTECGetSegmentColumn(nCol) & "_PCT = Round((" & PSYTECGetSegmentColumn(nCol) & " / PS_TOTAL) * 100, 0.01)"
+'		Call DEBUGPrint(sCmd)
+'		Run Command sCmd
+'	Next
 	Call DEBUGPrint("Finished after " & (CurTime() - tStart) & " secs")
 	Close Table sTab
 
@@ -106,12 +107,110 @@ End Sub
 '**********************************************************************************************''
 'Created by Peter Horsbøll Møller, Precisely
 'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetBenchmarkTypes(	arrTypes() As String) As Integer
+
+Dim	sType As String
+
+OnError GoTo ErrorOccured
+
+PSYTELGetBenchmarkTypes = 0
+
+	If PSYTECBenchmarkTabFile() = "" Then
+		Exit Function
+	End If
+
+	Open Table PSYTECBenchmarkTabFile()
+
+	Select type
+		From PSYTECBenchmarkTable()
+		Order By type
+		Group By type
+		Into __BM__TYPES NoSelect Hide
+
+	Fetch First From __BM__TYPES
+	Do Until EOT(__BM__TYPES)
+		sType	= __BM__TYPES.type
+		Call ARRAYAddValueString(arrTypes, sType)
+
+		Fetch Next From __BM__TYPES
+	Loop
+
+	Call TABCLose("__BM__TYPES")
+	Call TABClose(PSYTECBenchmarkTable())
+
+	PSYTELGetBenchmarkTypes = Ubound(arrTypes)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELGetBenchmarkTypes")
+	Call ERRShow()
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetBenchmarkTitles(	  ByVal sType As String
+							, arrNames() As String) As Integer
+
+Dim	sName As String
+
+OnError GoTo ErrorOccured
+
+PSYTELGetBenchmarkTitles = 0
+
+	If PSYTECBenchmarkTabFile() = "" Then
+		Exit Function
+	End If
+
+	Open Table PSYTECBenchmarkTabFile()
+
+	Select code, areaname
+		From PSYTECBenchmarkTable()
+		Where type	= sType
+		Order By code, areaname
+		Group By code, areaname
+		Into __BM__NAMES NoSelect Hide
+
+	Fetch First From __BM__NAMES
+	Do Until EOT(__BM__NAMES)
+		sName	= __BM__NAMES.code & " " & __BM__NAMES.areaname
+		Call ARRAYAddValueString(arrNames, sName)
+
+		Fetch Next From __BM__NAMES
+	Loop
+
+	Call TABCLose("__BM__NAMES")
+	Call TABClose(PSYTECBenchmarkTable())
+
+	PSYTELGetBenchmarkTitles = Ubound(arrNames)
+
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Call ERRCreate(Err(), Error$(), "PSYTELGetBenchmarkTitles")
+	Call ERRShow()
+
+End Function
+
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Precisely
+'Parameters:
 '
 '**********************************************************************************************''
 Sub PSYTELLoadSegmentLabelsTable(	  ByVal sTXTFile As String		'TXT File to load
-							, ByVal sTABFile As String		'TAB File to save it into
 							)
-Dim	sTempFile, sTab As String,
+Dim	sTABFile, sTempFile, sTab As String,
 	tStart As Time
 
 OnError GoTo ErrorOccured
@@ -120,6 +219,7 @@ OnError GoTo ErrorOccured
 	Set Progressbars Off
 
 	Call DEBUGPrint("Loading Segment Labels File into TAB Format " & (CurTime() - tStart) & " secs")
+	sTABFile	= Left$(sTXTFile, Len(sTXTFile) - 3) & "TAB"
 	sTempFile	= FILEWindowsTempFolder() & "__tmp_segment_labels.tab"
 	Register Table sTXTFile
 		 TYPE ASCII Delimiter 124 Titles Charset "WindowsLatin1"

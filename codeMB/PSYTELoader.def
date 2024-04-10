@@ -1,6 +1,8 @@
 ﻿Declare Sub PSYTELLoadBenchmarkTable(	  ByVal sTXTFile As String		'TXT File to load
-								, ByVal sTabFile As String		'TAB File to save it into
 								)
+Declare Function PSYTELGetBenchmarkTypes(  arrTypes() As String) As Integer
+Declare Function PSYTELGetBenchmarkTitles(  ByVal sType As String
+								, arrTitles() As String) As Integer
+
 Declare Sub PSYTELLoadSegmentLabelsTable( ByVal sTXTFile As String		'TXT File to load
-								, ByVal sTABFile As String		'TAB File to save it into
 								)

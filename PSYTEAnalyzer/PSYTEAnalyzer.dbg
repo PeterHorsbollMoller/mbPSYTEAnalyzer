@@ -1,10 +1,136 @@
-13:21:23 PSYTEUpdateGraphbar: Frame='GraphBar(Site1Top[2].hh_pct)' --> sSite='Site1Top' Top='2' Column='hh_pct'
-13:21:23 PSYTEUpdateGraphbar: Frame='GraphBar(Site1Top[1].hh_pct)' --> sSite='Site1Top' Top='1' Column='hh_pct'
-13:53:03 1: households
-13:53:03 Update _Site_B Set households = households * proportion_overlap
-13:53:03 2: population
-13:53:03 Update _Site_B Set population = population * proportion_overlap
-13:53:03 PSYTECreateTempSegmTable: Create Segment Table '_Site_B_segments' for Site Table '_Site_B'
-13:53:04 Add Column _Site_B (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
-13:53:04 Update _Site_B_segments Set households_pct = Round((households / 8875) * 100, 0.01)
-13:53:04 Update _Site_B_segments Set population_pct = Round((population / 18643) * 100, 0.01)
+17:01:13 Add Column _Site_C_segments(population_2) From _Site_D_segments Set To population Where psyte_seg = psyte_seg
+17:01:13 Add Column _Site_C_segments(population_PCT_2) From _Site_D_segments Set To population_PCT Where psyte_seg = psyte_seg
+17:01:13 Query: Where 'code ' ' & areaname = '06 California And type = st
+17:01:13 PSYTELayoutNewDualSites Name: 06 California Type: st
+16:41:40 1: households
+16:41:40 Update _Site_D Set households = households * proportion_overlap
+16:41:40 2: population
+16:41:40 Update _Site_D Set population = population * proportion_overlap
+16:41:40 PSYTECreateTempSegmTable: Create Segment Table '_Site_D_segments' for Site Table '_Site_D'
+16:41:40 Add Column _Site_D (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+16:41:41 Update _Site_D_segments Set households_pct = Round((households / 7323) * 100, 0.01)
+16:41:41 Update _Site_D_segments Set population_pct = Round((population / 20699) * 100, 0.01)
+16:41:41 Query: Where 'code ' ' & areaname = '06 California And type = st
+16:43:15 Selecting RowID 1 From Query1
+16:43:16 1: households
+16:43:16 Update _Site_C Set households = households * proportion_overlap
+16:43:16 2: population
+16:43:16 Update _Site_C Set population = population * proportion_overlap
+16:43:16 PSYTECreateTempSegmTable: Create Segment Table '_Site_C_segments' for Site Table '_Site_C'
+16:43:16 Add Column _Site_C (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+16:43:17 Update _Site_C_segments Set households_pct = Round((households / 9562) * 100, 0.01)
+16:43:17 Update _Site_C_segments Set population_pct = Round((population / 26450) * 100, 0.01)
+16:43:17 Selecting RowID 2 From Query1
+16:43:18 1: households
+16:43:18 Update _Site_D Set households = households * proportion_overlap
+16:43:18 2: population
+16:43:18 Update _Site_D Set population = population * proportion_overlap
+16:43:18 PSYTECreateTempSegmTable: Create Segment Table '_Site_D_segments' for Site Table '_Site_D'
+16:43:18 Add Column _Site_D (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+16:43:18 Update _Site_D_segments Set households_pct = Round((households / 7323) * 100, 0.01)
+16:43:18 Update _Site_D_segments Set population_pct = Round((population / 20699) * 100, 0.01)
+16:43:18 Add Column _Site_C_segments(households_2) From _Site_D_segments Set To households Where psyte_seg = psyte_seg
+16:43:19 Add Column _Site_C_segments(households_PCT_2) From _Site_D_segments Set To households_PCT Where psyte_seg = psyte_seg
+16:43:19 Add Column _Site_C_segments(population_2) From _Site_D_segments Set To population Where psyte_seg = psyte_seg
+16:43:19 Add Column _Site_C_segments(population_PCT_2) From _Site_D_segments Set To population_PCT Where psyte_seg = psyte_seg
+16:43:19 Query: Where 'code ' ' & areaname = '06 California And type = st
+16:43:19 PSYTELayoutNewDualSites Name: 06 California Type: st
+13:51:21 psyte_usa_bench(_sample).TAB not found in data folder: C:\0. Support\PSYTE USA 2023\data\
+13:51:21 Loading Benchmark file from C:\0. Support\PSYTE USA 2023\data\psyte_usa_bench_sample.txt...
+13:51:21 Loading Benchmark File into TAB Format 0 secs
+13:51:21 Finished after 0.047 secs
+13:54:23 Selecting RowID 2 From Query1
+13:54:24 1: households
+13:54:24 Update _Shop_Alfa Set households = households * proportion_overlap
+13:54:24 2: population
+13:54:24 Update _Shop_Alfa Set population = population * proportion_overlap
+13:54:24 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Alfa_segments' for Site Table '_Shop_Alfa'
+13:54:24 Loading Segment Labels file...
+13:54:24 Loading Segment Labels File into TAB Format 0 secs
+13:54:24 Add Column _Shop_Alfa (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+13:54:24 Update _Shop_Alfa_segments Set households_pct = Round((households / 14196) * 100, 0.01)
+13:54:24 Update _Shop_Alfa_segments Set population_pct = Round((population / 36738) * 100, 0.01)
+13:54:25 Selecting RowID 1 From Query1
+13:54:25 1: households
+13:54:25 Update _Shop_Beta Set households = households * proportion_overlap
+13:54:25 2: population
+13:54:25 Update _Shop_Beta Set population = population * proportion_overlap
+13:54:25 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Beta_segments' for Site Table '_Shop_Beta'
+13:54:25 Add Column _Shop_Beta (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+13:54:25 Update _Shop_Beta_segments Set households_pct = Round((households / 28282) * 100, 0.01)
+13:54:25 Update _Shop_Beta_segments Set population_pct = Round((population / 64125) * 100, 0.01)
+13:54:25 Add Column _Shop_Alfa_segments(households_2) From _Shop_Beta_segments Set To households Where psyte_seg = psyte_seg
+13:54:25 Add Column _Shop_Alfa_segments(households_PCT_2) From _Shop_Beta_segments Set To households_PCT Where psyte_seg = psyte_seg
+13:54:25 Add Column _Shop_Alfa_segments(population_2) From _Shop_Beta_segments Set To population Where psyte_seg = psyte_seg
+13:54:25 Add Column _Shop_Alfa_segments(population_PCT_2) From _Shop_Beta_segments Set To population_PCT Where psyte_seg = psyte_seg
+13:54:26 Query: Where 'code ' ' & areaname = '06075 San Francisco County And type = co
+13:54:26 PSYTELayoutNewDualSites Name: 06075 San Francisco County Type: co
+14:11:51 Selecting RowID 2 From Query2
+14:11:51 1: households
+14:11:51 Update _Shop_Alfa Set households = households * proportion_overlap
+14:11:51 2: population
+14:11:51 Update _Shop_Alfa Set population = population * proportion_overlap
+14:11:51 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Alfa_segments' for Site Table '_Shop_Alfa'
+14:11:52 Add Column _Shop_Alfa (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:11:52 Update _Shop_Alfa_segments Set households_pct = Round((households / 14196) * 100, 0.01)
+14:11:52 Update _Shop_Alfa_segments Set population_pct = Round((population / 36738) * 100, 0.01)
+14:11:52 Selecting RowID 1 From Query2
+14:11:52 1: households
+14:11:52 Update _Shop_Beta Set households = households * proportion_overlap
+14:11:52 2: population
+14:11:52 Update _Shop_Beta Set population = population * proportion_overlap
+14:11:52 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Beta_segments' for Site Table '_Shop_Beta'
+14:11:52 Add Column _Shop_Beta (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:11:53 Update _Shop_Beta_segments Set households_pct = Round((households / 28282) * 100, 0.01)
+14:11:53 Update _Shop_Beta_segments Set population_pct = Round((population / 64125) * 100, 0.01)
+14:11:53 Add Column _Shop_Alfa_segments(households_2) From _Shop_Beta_segments Set To households Where psyte_seg = psyte_seg
+14:11:53 Add Column _Shop_Alfa_segments(households_PCT_2) From _Shop_Beta_segments Set To households_PCT Where psyte_seg = psyte_seg
+14:11:53 Add Column _Shop_Alfa_segments(population_2) From _Shop_Beta_segments Set To population Where psyte_seg = psyte_seg
+14:11:53 Add Column _Shop_Alfa_segments(population_PCT_2) From _Shop_Beta_segments Set To population_PCT Where psyte_seg = psyte_seg
+14:11:53 PSYTELayoutNewDualSites Name:  Type: 
+14:13:55 Selecting RowID 1 From Query1
+14:13:55 1: households
+14:13:55 Update _Shop_Beta Set households = households * proportion_overlap
+14:13:55 2: population
+14:13:55 Update _Shop_Beta Set population = population * proportion_overlap
+14:13:55 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Beta_segments' for Site Table '_Shop_Beta'
+14:13:55 Add Column _Shop_Beta (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:13:56 Update _Shop_Beta_segments Set households_pct = Round((households / 28282) * 100, 0.01)
+14:13:56 Update _Shop_Beta_segments Set population_pct = Round((population / 64125) * 100, 0.01)
+14:13:56 Selecting RowID 2 From Query1
+14:13:56 1: households
+14:13:56 Update _Shop_Alfa Set households = households * proportion_overlap
+14:13:56 2: population
+14:13:56 Update _Shop_Alfa Set population = population * proportion_overlap
+14:13:56 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Alfa_segments' for Site Table '_Shop_Alfa'
+14:13:56 Add Column _Shop_Alfa (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:13:56 Update _Shop_Alfa_segments Set households_pct = Round((households / 14196) * 100, 0.01)
+14:13:56 Update _Shop_Alfa_segments Set population_pct = Round((population / 36738) * 100, 0.01)
+14:13:56 Add Column _Shop_Beta_segments(households_2) From _Shop_Alfa_segments Set To households Where psyte_seg = psyte_seg
+14:13:57 Add Column _Shop_Beta_segments(households_PCT_2) From _Shop_Alfa_segments Set To households_PCT Where psyte_seg = psyte_seg
+14:13:57 Add Column _Shop_Beta_segments(population_2) From _Shop_Alfa_segments Set To population Where psyte_seg = psyte_seg
+14:13:57 Add Column _Shop_Beta_segments(population_PCT_2) From _Shop_Alfa_segments Set To population_PCT Where psyte_seg = psyte_seg
+14:13:57 PSYTELayoutNewDualSites Name:  Type: 
+14:25:04 Selecting RowID 1 From Query1
+14:25:04 1: households
+14:25:04 Update _Shop_Beta Set households = households * proportion_overlap
+14:25:04 2: population
+14:25:04 Update _Shop_Beta Set population = population * proportion_overlap
+14:25:05 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Beta_segments' for Site Table '_Shop_Beta'
+14:25:05 Add Column _Shop_Beta (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:25:05 Update _Shop_Beta_segments Set households_pct = Round((households / 28282) * 100, 0.01)
+14:25:05 Update _Shop_Beta_segments Set population_pct = Round((population / 64125) * 100, 0.01)
+14:25:05 Selecting RowID 2 From Query1
+14:25:05 1: households
+14:25:05 Update _Shop_Gamma Set households = households * proportion_overlap
+14:25:05 2: population
+14:25:05 Update _Shop_Gamma Set population = population * proportion_overlap
+14:25:05 PSYTECreateTempSegmTable: Create Segment Table '_Shop_Gamma_segments' for Site Table '_Shop_Gamma'
+14:25:05 Add Column _Shop_Gamma (seg_label) From psyte_usa_seg_labels Set To Label Where psyte_seg = psyte_seg
+14:25:06 Update _Shop_Gamma_segments Set households_pct = Round((households / 12644) * 100, 0.01)
+14:25:06 Update _Shop_Gamma_segments Set population_pct = Round((population / 44903) * 100, 0.01)
+14:25:06 Add Column _Shop_Beta_segments(households_2) From _Shop_Gamma_segments Set To households Where psyte_seg = psyte_seg
+14:25:06 Add Column _Shop_Beta_segments(households_PCT_2) From _Shop_Gamma_segments Set To households_PCT Where psyte_seg = psyte_seg
+14:25:06 Add Column _Shop_Beta_segments(population_2) From _Shop_Gamma_segments Set To population Where psyte_seg = psyte_seg
+14:25:06 Add Column _Shop_Beta_segments(population_PCT_2) From _Shop_Gamma_segments Set To population_PCT Where psyte_seg = psyte_seg
+14:25:06 PSYTELayoutNewDualSites Name:  Type: 

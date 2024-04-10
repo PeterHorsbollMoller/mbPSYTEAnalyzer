@@ -61,6 +61,7 @@ End Type
 'Graphbar(Site1Top[1].pop_pct)	: Site1Top[1] - Site1Top[10]
 'Graphbar(Site2Top[1].hh_pct) 	: Site2Top[1] - Site2Top[10]
 'Graphbar(Site2Top[1].pop_pct) 	: Site2Top[1] - Site2Top[10]
+'Graphbar(ReferenceTop[1].pop_pct) 	: ReferenceTop[1] - ReferenceTop[10]
 
 Declare Sub PSYTEUpdateGraphbar(	  ByVal nLayoutID As Integer
 							, ByVal nFrameID As Integer
@@ -79,7 +80,7 @@ Declare Sub PSYTEUpdateLegendStyle(  ByVal nLayoutID As Integer
 Dim	marrSegmentTop() AS T_SEGMENT_TOP,
 	marrThemeItems() As T_INDIVIDUAL_ITEMS,
 	marrSiteTables(2), msSegmentTab As String,
-	marrSiteNames(2) As String
+	marrSiteNames(2), msBenchmarkTitle, msBenchmarkType As String
 '**********************************************************************************************''
 'Created by Peter Horsbøll Møller, Precisely
 'Parameters:
@@ -87,6 +88,8 @@ Dim	marrSegmentTop() AS T_SEGMENT_TOP,
 '**********************************************************************************************''
 Sub PSYTELayoutNewSingleSite(	  ByVal nMID As Integer
 						, ByVal sName As String
+						, ByVal sBenchmarkType As String
+						, ByVal sBenchmarkTitle As String
 						, ByVal sSiteTab As String
 						, ByVal sSegmentsTab As String
 						, ByVal sLayoutFile As String
@@ -102,6 +105,9 @@ OnError GoTo ErrorOccured
 	marrSiteTables(1)	= sSiteTab
 	msSegmentTab		= sSegmentsTab
 	marrSiteNames(1)	= sName
+	msBenchmarkTitle	= sBenchmarkTitle
+	msBenchmarkType	= sBenchmarkType
+'	Call DEBUGPrint("PSYTELayoutNewSingleSite Name: " & msBenchmarkTitle & " Type: " & msBenchmarkType)
 
 	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
 	nLayoutID	= FrontWindow()
@@ -186,6 +192,8 @@ End Sub
 '**********************************************************************************************''
 Sub PSYTELayoutNewDualSites(	  ByVal nMID As Integer
 						, arrNames() As String
+						, ByVal sBenchmarkType As String
+						, ByVal sBenchmarkTitle As String
 						, arrSiteTables() As String
 						, ByVal sSegmentsTab As String
 						, ByVal sLayoutFile As String
@@ -206,6 +214,9 @@ OnError GoTo ErrorOccured
 		marrSiteTables(nTab)	= arrSiteTables(nTab)
 		marrSiteNames(nTab)		= arrNames(nTab)
 	Next
+	msBenchmarkTitle	= sBenchmarkTitle
+	msBenchmarkType	= sBenchmarkType
+	Call DEBUGPrint("PSYTELayoutNewDualSites Name: " & msBenchmarkTitle & " Type: " & msBenchmarkType)
 
 	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
 	nLayoutID	= FrontWindow()
@@ -322,8 +333,11 @@ OnError GoTo ErrorOccured
 	sCol		= Mid$(sExpr, nPos + 1, Len(sExpr))
 
 	nPos 	= InStr(1, sExpr, "[")
-	'Extracting Site: Site1Top or Site2Top ...
+	'Extracting Site: Site1Top, Site2Top, ReferenceTop ...
 	sSite	= Left$(sExpr, nPos - 1)
+	If Right$(sSite, 3) = "Top" Then
+		sSite	= Left$(sSite, Len(sSite)- 3)
+	End If
 
 '	Call DEBUGPrint("PSYTEUpdateGraphbar: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "' Column='" & sCol & "'")
 
@@ -382,8 +396,11 @@ OnError GoTo ErrorOccured
 	sCol		= Mid$(sExpr, nPos + 1, Len(sExpr))
 
 	nPos 	= InStr(1, sExpr, "[")
-	'Extracting Site: Site1Top or Site2Top ...
+	'Extracting Site: Site1Top, Site2Top, ReferenceTop ...
 	sSite	= Left$(sExpr, nPos - 1)
+	If Right$(sSite, 3) = "Top" Then
+		sSite	= Left$(sSite, Len(sSite)- 3)
+	End If
 
 '	Call DEBUGPrint("PSYTEUpdateGraphcolumn: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "' Column='" & sCol & "'")
 
@@ -446,14 +463,17 @@ OnError GoTo ErrorOccured
 	nTopNo	= STRINGGetValueBetweenChars(sExpr, "[", "]")
 
 	nPos 	= InStr(1, sExpr, "[")
-	'Extracting Site: Site1Top or Site2Top ...
+	'Extracting Site: Site1Top, Site2Top, ReferenceTop ...
 	sSite	= Left$(sExpr, nPos - 1)
+	If Right$(sSite, 3) = "Top" Then
+		sSite	= Left$(sSite, Len(sSite)- 3)
+	End If
 
 '	Call DEBUGPrint("PSYTEUpdateLegendStyle: Frame='" & sFrameName & "' --> sSite='" & sSite & "' Top='" & nTopNo & "'")
 
 	If marrThemeItems(1).sExpr = "psyte_seg" Then
 		sValue	= PSYTELGetTopExt(sSite, nTopNo, "psyte_seg")
-	ElseIf marrThemeItems(1).sExpr Or "seg_label" Then
+	ElseIf marrThemeItems(1).sExpr = "seg_label" Then
 		sValue	= PSYTELGetTopExt(sSite, nTopNo, "seg_label")
 	End If
 
@@ -590,9 +610,9 @@ PSYTELGetTopExt = ""
 
 				If COLExists("__Top__Segments", "households_BM") Then
 					marrSegmentTop(nItem).nHouseholdCountBM		= __Top__Segments.households_BM
-					marrSegmentTop(nItem).nPopulationCountBM	= __Top__Segments.population_BM
+'					marrSegmentTop(nItem).nPopulationCountBM	= __Top__Segments.population_BM
 					marrSegmentTop(nItem).fHouseholdPctBM		= __Top__Segments.households_pct_BM
-					marrSegmentTop(nItem).fPopulationPctBM		= __Top__Segments.population_pct_BM
+'					marrSegmentTop(nItem).fPopulationPctBM		= __Top__Segments.population_pct_BM
 				End If
 
 '				Call DEBUGPrint(nItem & ": " & marrSegmentTop(nItem).sSegm & " " & marrSegmentTop(nItem).sLabel & " " & marrSegmentTop(nItem).fHouseholdPct)				Fetch Next From __Top__Segments
@@ -608,6 +628,29 @@ PSYTELGetTopExt = ""
 	End If
 
 	Do Case sColumn
+		Case "Name"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = marrSiteNames(1)
+				Case "Site2", "2", "Site2Top"
+					sVal = marrSiteNames(2)
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
+					sVal = msBenchmarkName
+			End Case
+		Case "Title"
+			Do Case sSite
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
+					sVal = msBenchmarkTitle
+			End Case
+		Case "Type"
+			Do Case sSite
+				Case "Site1", "1", "Site1Top", ""
+					sVal = ""
+				Case "Site2", "2", "Site2Top"
+					sVal = ""
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
+					sVal = msBenchmarkType
+			End Case
 		Case "psyte_seg", "seg_code"
 			sVal = marrSegmentTop(nTop).sSegm
 		Case "seg_label"
@@ -618,7 +661,7 @@ PSYTELGetTopExt = ""
 					sVal = marrSegmentTop(nTop).nHouseholdCount
 				Case "Site2", "2", "Site2Top"
 					sVal = marrSegmentTop(nTop).nHouseholdCount2
-				Case "Benchmark", "Reference", "BM", "BMTop"
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
 					sVal = marrSegmentTop(nTop).nHouseholdCountBM
 			End Case
 		Case "population", "pop"
@@ -627,7 +670,7 @@ PSYTELGetTopExt = ""
 					sVal = marrSegmentTop(nTop).nPopulationCount
 				Case "Site2", "2", "Site2Top"
 					sVal = marrSegmentTop(nTop).nPopulationCount2
-				Case "Benchmark", "Reference", "BM", "BMTop"
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
 					sVal = marrSegmentTop(nTop).nPopulationCountBM
 			End Case
 		Case "households_pct", "hh_pct"
@@ -636,7 +679,7 @@ PSYTELGetTopExt = ""
 					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPct)
 				Case "Site2", "2", "Site2Top"
 					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPct2)
-				Case "Benchmark", "Reference", "BM", "BMTop"
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
 					sVal = FormatNumber$(marrSegmentTop(nTop).fHouseholdPctBM)
 			End Case
 		Case "population_pct", "pop_pct"
@@ -645,7 +688,7 @@ PSYTELGetTopExt = ""
 					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPct)
 				Case "Site2", "2", "Site2Top"
 					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPct2)
-				Case "Benchmark", "Reference", "BM", "BMTop"
+				Case "Benchmark", "Reference", "BM", "BMTop", "Ref"
 					sVal = FormatNumber$(marrSegmentTop(nTop).fPopulationPctBM)
 			End Case
 	End Case
@@ -691,6 +734,55 @@ PSYTELGetSiteName	= ""
 '-------------------------
 ErrorOccured:
 	Note Err() & " " & Error$() & " PSYTELGetSiteName: Site: " & nSite
+
+End Function
+
+'**********************************************************************************************''
+'Created by Peter Horsbøll Møller, Pitney Bowes
+'Parameters:
+'	:
+'Return value:
+'
+'**********************************************************************************************''
+Function PSYTELGetBenchmarkTitle() As String
+
+OnError GoTo ErrorOccured
+
+	PSYTELGetBenchmarkTitle	= msBenchmarkTitle
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetBenchmarkTitle"
+
+End Function
+'**********************************************************************************************''
+Function PSYTELGetBenchmarkName() As String
+
+Dim nChar As Integer
+
+OnError GoTo ErrorOccured
+
+	nChar	= InStr(1, msBenchmarkTitle, " ")
+	PSYTELGetBenchmarkName	= Mid$(msBenchmarkTitle, nChar + 1, Len(msBenchmarkTitle))
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetBenchmarkName"
+
+End Function
+'**********************************************************************************************''
+Function PSYTELGetBenchmarkCode() As String
+
+Dim nChar As Integer
+
+OnError GoTo ErrorOccured
+
+	nChar	= InStr(1, msBenchmarkTitle, " ")
+	PSYTELGetBenchmarkCode	= Left$(msBenchmarkTitle, nChar - 1)
+	Exit Function
+'-------------------------
+ErrorOccured:
+	Note Err() & " " & Error$() & " PSYTELGetBenchmarkCode"
 
 End Function
 

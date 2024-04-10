@@ -11,6 +11,5 @@ Declare Function PSYTECDADGetRowID(ByVal nSite As Integer
 							) As Integer
 
 Declare Function PSYTECDADAddBenchmark() As Logical
-'Declare Sub PSYTECDADSetAddBenchmark(ByVal bValue As Logical)
 Declare Function PSYTECDADGetBenchmarkType() As String
-'Declare Sub PSYTECDADSetBenchmarkType(ByVal sType As String)
+Declare Function PSYTECDADGetBenchmarkTitle() As String

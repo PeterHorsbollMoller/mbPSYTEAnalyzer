@@ -1,11 +1,15 @@
 ﻿Declare Sub PSYTELayoutNewSingleSite(	  ByVal nMID As Integer
 								, ByVal sName As String
+								, ByVal sBenchmarkType As String
+								, ByVal sBenchmarkTitle As String
 								, ByVal sSiteTab As String
 								, ByVal sSegmentsTab As String
 								, ByVal sLayoutFile As String
 								)
 Declare Sub PSYTELayoutNewDualSites(	  ByVal nMID As Integer
 								, arrNames() As String
+								, ByVal sBenchmarkType As String
+								, ByVal sBenchmarkTitle As String
 								, arrSiteTables() As String
 								, ByVal sSegmentsTab As String
 								, ByVal sLayoutFile As String
@@ -22,6 +26,9 @@ Declare Function PSYTELGetTopExt(	  ByVal sSite As String	'Site1, 1, Site2, 2, B
 
 Declare Function PSYTELGetSiteName(  ByVal nSite As Integer
 							) As String
+Declare Function PSYTELGetBenchmarkTitle() As String
+Declare Function PSYTELGetBenchmarkName() As String
+Declare Function PSYTELGetBenchmarkCode() As String
 Declare Function PSYTELGetSiteColumnValue(  ByVal sCol As String
 									) As String
 Declare Function PSYTELGetSiteColumnValueErr(ByVal sCol As String

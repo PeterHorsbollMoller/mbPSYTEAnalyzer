@@ -8,6 +8,5 @@ Declare Function PSYTECSADGetLayoutTemplateFile() As String
 'Declare Sub PSYTECSADSetLayoutTemplateFile(ByVal sCol As String)
 
 Declare Function PSYTECSADAddBenchmark() As Logical
-'Declare Sub PSYTECSADSetAddBenchmark(ByVal bValue As Logical)
 Declare Function PSYTECSADGetBenchmarkType() As String
-'Declare Sub PSYTECSADSetBenchmarkType(ByVal sType As String)
+Declare Function PSYTECSADGetBenchmarkTitle() As String

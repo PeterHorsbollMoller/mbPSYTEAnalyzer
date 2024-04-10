@@ -3,6 +3,8 @@
 Declare Function PSYTECBenchmarkTxtFile() As String
 Declare Function PSYTECBenchmarkTabFile() As String
 Declare Function PSYTECBenchmarkTable() As String
+Declare Function PSYTECSupportsBenchmark() As Logical
+
 Declare Function PSYTECSegmentLabelsTabFile() As String
 Declare Function PSYTECSegmentLabelsTxtFile() As String
 Declare Function PSYTECSegmentLabelsTable() As String
