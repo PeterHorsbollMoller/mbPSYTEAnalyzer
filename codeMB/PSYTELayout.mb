@@ -109,6 +109,11 @@ OnError GoTo ErrorOccured
 	msBenchmarkType	= sBenchmarkType
 '	Call DEBUGPrint("PSYTELayoutNewSingleSite Name: " & msBenchmarkTitle & " Type: " & msBenchmarkType)
 
+	If not FileExists(sLayoutFile) Then
+		Note "The specified layout file doesn't exist: " & sLayoutFile
+		Exit Sub
+	End If
+
 	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
 	nLayoutID	= FrontWindow()
 
@@ -216,7 +221,12 @@ OnError GoTo ErrorOccured
 	Next
 	msBenchmarkTitle	= sBenchmarkTitle
 	msBenchmarkType	= sBenchmarkType
-	Call DEBUGPrint("PSYTELayoutNewDualSites Name: " & msBenchmarkTitle & " Type: " & msBenchmarkType)
+'	Call DEBUGPrint("PSYTELayoutNewDualSites Name: " & msBenchmarkTitle & " Type: " & msBenchmarkType)
+
+	If not FileExists(sLayoutFile) Then
+		Note "The specified layout file doesn't exist: " & sLayoutFile
+		Exit Sub
+	End If
 
 	Run Command "Run Application " & Chr$(34) & sLayoutFile & Chr$(34)
 	nLayoutID	= FrontWindow()

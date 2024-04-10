@@ -9,7 +9,7 @@ Layout Designer
   Dim restoreCoordSysString As String
   restoreCoordSysString = "Set " + SessionInfo(1)
   Set CoordSys Layout Units "in"
-  Set Layout Window uniqueLayoutWin Zoom 61.9121 Center (12.4252,5.88031)
+  Set Layout Window uniqueLayoutWin Zoom 80 Center (9.61589,4.55078)
 Set Window FrontWindow() Enhanced On Smooth Text Antialias Image High Vector Antialias
 Set Window FrontWindow() Printer
  Name "HP ColorLaserJet M253-M254 PCL-6 (V4) (Network)" Orientation Portrait Copies 1
@@ -173,36 +173,36 @@ Create Text Into Window uniqueLayoutWin
     Priority 27
 Create Rect (1.2569,7.5056) (7.8639,7.6424)
     Pen (0,1,16777215) 
-    Brush (2,16728128,16777215)
+    Brush (2,16720127,16777215)
     Priority 28
-Name "GraphBar(Site2Top[1].hh_pct)"
+Name "GraphBar(BenchmarkTop[1].hh_pct)"
 Create Rect (1.2569,7.9146) (7.8639,8.0514)
     Pen (0,1,16777215) 
-    Brush (2,16732240,16777215)
+    Brush (2,16728319,16777215)
     Priority 31
-Name "GraphBar(Site2Top[2].hh_pct)"
+Name "GraphBar(BenchmarkTop[2].hh_pct)"
 Create Rect (1.2569,8.3236) (7.8639,8.4604)
     Pen (0,1,16777215) 
-    Brush (2,16736352,16777215)
+    Brush (2,16732415,16777215)
     Priority 33
-Name "GraphBar(Site2Top[3].hh_pct)"
+Name "GraphBar(BenchmarkTop[3].hh_pct)"
 Create Rect (1.2569,8.7326) (7.8639,8.8701)
     Pen (0,1,16777215) 
-    Brush (2,16744576,16777215)
+    Brush (2,16740607,16777215)
     Priority 34
-Name "GraphBar(Site2Top[4].hh_pct)"
+Name "GraphBar(BenchmarkTop[4].hh_pct)"
 Create Rect (1.2569,9.1417) (7.8639,9.2792)
     Pen (0,1,16777215) 
-    Brush (2,16748688,16777215)
+    Brush (2,16744703,16777215)
     Priority 35
-Name "GraphBar(Site2Top[5].hh_pct)"
+Name "GraphBar(BenchmarkTop[5].hh_pct)"
 Create Rect (7.2986,7.0201) (7.8639,7.1569)
     Pen (0,1,16777215) 
     Brush (2,16744448,16777215)
     Priority 39
 Create Rect (7.2986,7.1576) (7.8639,7.2944)
     Pen (0,1,16777215) 
-    Brush (2,16728128,16777215)
+    Brush (2,16720127,16777215)
     Priority 40
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetSiteName(1)}"
@@ -210,84 +210,72 @@ Create Text Into Window uniqueLayoutWin
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 41
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetSiteName(2)}"
+    "$mb{PSYTEGetBenchmarkName()}"
     (5.0903,7.1569) (7.7417,7.3243)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 42
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetTopExt(""1"", 1, ""hh_pct"")}%"
     (5.5049,7.3375) (7.8396,7.5049)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 43
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetTopExt(""2"", 1, ""hh_pct"")}%"
+    "$mb{PSYTEGetTopExt(""Ref"", 1, ""hh_pct"")}%"
     (5.5049,7.5049) (7.8403,7.6722)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 44
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetTopExt(""1"", 2, ""hh_pct"")}%"
     (5.5042,7.7472) (7.8389,7.9146)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 45
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetTopExt(""2"", 2, ""hh_pct"")}%"
+    "$mb{PSYTEGetTopExt(""Ref"", 2, ""hh_pct"")}%"
     (5.5042,7.9146) (7.8396,8.0819)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 46
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetTopExt(""1"", 3, ""hh_pct"")}%"
     (5.5042,8.1563) (7.8396,8.3236)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 47
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetTopExt(""2"", 3, ""hh_pct"")}%"
+    "$mb{PSYTEGetTopExt(""Ref"", 3, ""hh_pct"")}%"
     (5.5042,8.3236) (7.8403,8.491)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 48
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetTopExt(""1"", 4, ""hh_pct"")}%"
     (5.5035,8.5653) (7.8382,8.7326)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 49
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetTopExt(""2"", 4, ""hh_pct"")}%"
+    "$mb{PSYTEGetTopExt(""Ref"", 4, ""hh_pct"")}%"
     (5.5035,8.7326) (7.8389,8.9)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 50
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
     "$mb{PSYTEGetTopExt(""1"", 5, ""hh_pct"")}%"
     (5.5049,8.9729) (7.8396,9.1403)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 51
-Name "[Text(Top1)]"
 Create Text Into Window uniqueLayoutWin 
-    "$mb{PSYTEGetTopExt(""2"", 5, ""hh_pct"")}%"
+    "$mb{PSYTEGetTopExt(""Ref"", 5, ""hh_pct"")}%"
     (5.5049,9.1403) (7.8403,9.3076)
     Font ("Precision Sans W",0,9,0)
     Justify Right
     Priority 52
-Name "[Text(Top1)]"
   Run Command restoreCoordSysString
   Undim restoreCoordSysString
   UnDim uniqueLayoutWin

@@ -4,11 +4,15 @@
 '** Modul:
 '**
 '*******************************************************************************
-'	10-01-2024 08:54:23	v1.1.0:	support for benchmark values
+'	10-01-2024 08:54:23	v1.1.0:	- support for benchmark values
+'	10-04-2024 10:16:00	v1.1.3:	- fixed wrong template names and removed temp files
+'							- the config file is now saved when the user select the PSYTE Tab File
+'							- we now ensure the layout template exists before trying to open it.
 '*******************************************************************************
 'Additional improvements
 '	- Allow batch creation of analysis using multiple selected catchment areas or an entire table
 '	- Use catchment area to mask the map in the layout
+'	- Create Configuration dialog to manage template, data files, and zoom settings
 '*******************************************************************************
 
 '-------------------------------------
@@ -26,7 +30,7 @@ Include "Library\Defaults.def"
 Define xProgram 		"PSYTEAnalyzer"
 Define xProgramName		"PSYTE Analyzer"
 Define xProgramMenu		"PSYTE"
-Define xVersion 		"1.1.2"
+Define xVersion 		"1.1.3"
 Define xYear			"2024"
 Define xAddToMenuBar	FALSE
 
@@ -771,14 +775,15 @@ OnError GoTo ErrorOccured
 		sFolder = PSYTECGetDataTabFile()
 	End If
 
-
 	sFile = FileOpenDlg(sFolder, PathToFileName$(PSYTECGetDataTabFile()), "TAB", "Select TAB File holdings PSYTE data...")
 	If sFile = "" Then
 		Exit Sub
 	End If
 
-'	Call PSYTECSetDataDirectory(PathToDirectory$(sFile))
+	Call PSYTECSetDataDirectory(PathToDirectory$(sFile))
 	Call PSYTECSetDataTabFile(sFile)
+
+	Call PSYTECWriteConfigFile
 
 	Exit Sub
 '-------------------------
